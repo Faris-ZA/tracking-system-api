@@ -2,9 +2,9 @@ CREATE TYPE update_status AS ENUM ('New', 'Updated', 'Deleted');
 
 -- Table: people
 CREATE TABLE tblpeople (
-  id SERIAL PRIMARY KEY,
+  id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   name TEXT, 
-  phone TEXT(15),
+  phone TEXT,
   update_status update_status DEFAULT 'New',
   create_date TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   last_update TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -12,7 +12,7 @@ CREATE TABLE tblpeople (
 
 --Table: tags
 CREATE TABLE tbltags (
-  id SERIAL PRIMARY KEY,	
+  id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,	
   label TEXT,
   mac TEXT,
   update_status update_status DEFAULT 'New',
@@ -22,16 +22,16 @@ CREATE TABLE tbltags (
 
 -- Table: people_tag_association
 CREATE TABLE tblpeople_tag_association (
-  people_id INT REFERENCES tblpeople(id) ON DELETE CASCADE,
-  tag_id INT REFERENCES tbltags(id) ON DELETE CASCADE,
-  PRIMARY KEY (people_id, tag_id),
-  create_date TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  people_id INT REFERENCES tblpeople(id),
+  tag_id INT REFERENCES tbltags(id),
+  create_date TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (people_id, tag_id)
  
 );
 
 --Table: venues
 CREATE TABLE tblvenues (
-  id SERIAL PRIMARY KEY,
+  id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   name TEXT,
   city TEXT,
   update_status update_status DEFAULT 'New',
@@ -41,9 +41,9 @@ CREATE TABLE tblvenues (
 
 --Table: floors
 CREATE TABLE tblfloors (
-  id SERIAL PRIMARY KEY,
+  id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   name TEXT,
-  venue_id INT REFERENCES tblvenues(id) ON DELETE CASCADE,
+  venue_id INT REFERENCES tblvenues(id),
   level INT,
   update_status update_status DEFAULT 'New',
   create_date TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -52,9 +52,9 @@ CREATE TABLE tblfloors (
 
 --Table: zones
 CREATE TABLE tblzones (
-  id SERIAL PRIMARY KEY,
+  id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   name TEXT,
-  floor_id INT REFERENCES tblfloors(id) ON DELETE CASCADE,
+  floor_id INT REFERENCES tblfloors(id),
   update_status update_status DEFAULT 'New',
   create_date TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   last_update TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -62,7 +62,7 @@ CREATE TABLE tblzones (
 
 --Table: zones_polygon_points
 CREATE TABLE tblzones_polygon_points (
-   zone_id INT REFERENCES tblzones(id) ON DELETE CASCADE,
+   zone_id INT REFERENCES tblzones(id),
    point_index INT,
    x INT,
    y INT,
@@ -73,10 +73,10 @@ CREATE TABLE tblzones_polygon_points (
 
 --Table: last_positions
 CREATE TABLE tbllast_position (
-  people_id INT PRIMARY KEY REFERENCES tblpeople(id) ON DELETE CASCADE,
-  venue_id INT REFERENCES tblvenues(id) ON DELETE CASCADE,
-  floor_id INT REFERENCES tblfloors(id) ON DELETE CASCADE,
-  zone_id INT REFERENCES tblzones(id) ON DELETE CASCADE,
+  people_id INT PRIMARY KEY REFERENCES tblpeople(id),
+  venue_id INT REFERENCES tblvenues(id),
+  floor_id INT REFERENCES tblfloors(id),
+  zone_id INT REFERENCES tblzones(id),
   x INT,
   y INT,
   create_date TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -85,11 +85,11 @@ CREATE TABLE tbllast_position (
 
 --Table: position_history
 CREATE TABLE tblposition_history (	
-  id SERIAL PRIMARY KEY,
-  people_id INT REFERENCES tblpeople(id) ON DELETE CASCADE,
-  venue_id INT REFERENCES tblvenues(id) ON DELETE CASCADE,
-  floor_id INT REFERENCES tblfloors(id) ON DELETE CASCADE,
-  zone_id INT REFERENCES tblzones(id) ON DELETE CASCADE,
+  id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  people_id INT REFERENCES tblpeople(id),
+  venue_id INT REFERENCES tblvenues(id),
+  floor_id INT REFERENCES tblfloors(id),
+  zone_id INT REFERENCES tblzones(id),
   x INT,
   y INT,
   create_date TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
