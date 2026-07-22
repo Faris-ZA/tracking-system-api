@@ -12,7 +12,7 @@ CREATE TABLE tblpeople (
 
 --Table: tags
 CREATE TABLE tbltags (
-  id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,	
+  id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   label TEXT,
   mac TEXT,
   update_status update_status DEFAULT 'New',
