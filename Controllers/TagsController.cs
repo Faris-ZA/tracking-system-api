@@ -10,7 +10,8 @@ namespace WebApplication2.Controllers
     {
         private readonly ITagService _tagService;
 
-        public TagsController(ITagService tagService)
+        public TagsController(
+            ITagService tagService)
         {
             _tagService = tagService;
         }
@@ -18,53 +19,29 @@ namespace WebApplication2.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var tags = await _tagService.GetAllAsync();
+            var result =
+                await _tagService.GetAllAsync();
 
-            return Ok(tags);
+            return Ok(result);
         }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var tag = await _tagService.GetByIdAsync(id);
+            var result =
+                await _tagService.GetByIdAsync(id);
 
-            if (tag == null)
-            {
-                return NotFound(new
-                {
-                    message = "Tag not found."
-                });
-            }
-
-            return Ok(tag);
+            return Ok(result);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(CreateTagDto dto)
+        public async Task<IActionResult> Create(
+            CreateTagDto dto)
         {
-            try
-            {
-                var tag = await _tagService.CreateAsync(dto);
+            var result =
+                await _tagService.CreateAsync(dto);
 
-                return CreatedAtAction(
-                    nameof(GetById),
-                    new { id = tag.Id },
-                    tag);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new
-                {
-                    message = ex.Message
-                });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new
-                {
-                    message = ex.Message
-                });
-            }
+            return Ok(result);
         }
 
         [HttpPut("{id:int}")]
@@ -72,53 +49,20 @@ namespace WebApplication2.Controllers
             int id,
             UpdateTagDto dto)
         {
-            try
-            {
-                var tag = await _tagService.UpdateAsync(id, dto);
+            var result =
+                await _tagService.UpdateAsync(
+                    id,
+                    dto);
 
-                if (tag == null)
-                {
-                    return NotFound(new
-                    {
-                        message = "Tag not found."
-                    });
-                }
-
-                return Ok(tag);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new
-                {
-                    message = ex.Message
-                });
-            }
+            return Ok(result);
         }
 
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            try
-            {
-                var deleted = await _tagService.DeleteAsync(id);
+            await _tagService.DeleteAsync(id);
 
-                if (!deleted)
-                {
-                    return NotFound(new
-                    {
-                        message = "Tag not found."
-                    });
-                }
-
-                return NoContent();
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new
-                {
-                    message = ex.Message
-                });
-            }
+            return NoContent();
         }
     }
 }

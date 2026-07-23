@@ -1,4 +1,5 @@
 using WebApplication2.DTOs.People;
+using WebApplication2.Exceptions;
 using WebApplication2.Models;
 using WebApplication2.Repositories.Interfaces;
 using WebApplication2.Services.Interfaces;
@@ -9,27 +10,35 @@ namespace WebApplication2.Services.Implementations
     {
         private readonly IPersonRepository _personRepository;
 
-        public PersonService(IPersonRepository personRepository)
+        public PersonService(
+            IPersonRepository personRepository)
         {
             _personRepository = personRepository;
         }
 
         public async Task<List<PersonResponseDto>> GetAllAsync()
         {
-            var people = await _personRepository.GetAllAsync();
+            var people =
+                await _personRepository.GetAllAsync();
 
             return people
                 .Select(MapToResponseDto)
                 .ToList();
         }
 
-        public async Task<PersonResponseDto?> GetByIdAsync(int id)
+        public async Task<PersonResponseDto> GetByIdAsync(
+            int id)
         {
-            var person = await _personRepository.GetByIdAsync(id);
+            var person =
+                await _personRepository.GetByIdAsync(id);
 
-            return person == null
-                ? null
-                : MapToResponseDto(person);
+            if (person == null)
+            {
+                throw new NotFoundException(
+                    "Person not found.");
+            }
+
+            return MapToResponseDto(person);
         }
 
         public async Task<PersonResponseDto> CreateAsync(
@@ -37,13 +46,13 @@ namespace WebApplication2.Services.Implementations
         {
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
-                throw new ArgumentException(
+                throw new BadRequestException(
                     "Person name is required.");
             }
 
             if (string.IsNullOrWhiteSpace(dto.Phone))
             {
-                throw new ArgumentException(
+                throw new BadRequestException(
                     "Phone number is required.");
             }
 
@@ -51,11 +60,12 @@ namespace WebApplication2.Services.Implementations
             var phone = dto.Phone.Trim();
 
             var duplicateExists =
-                await _personRepository.ActiveNameExistsAsync(name);
+                await _personRepository
+                    .ActiveNameExistsAsync(name);
 
             if (duplicateExists)
             {
-                throw new InvalidOperationException(
+                throw new ConflictException(
                     "An active person with this name already exists.");
             }
 
@@ -76,25 +86,28 @@ namespace WebApplication2.Services.Implementations
             return MapToResponseDto(person);
         }
 
-        public async Task<PersonResponseDto?> UpdateAsync(
+        public async Task<PersonResponseDto> UpdateAsync(
             int id,
             UpdatePersonDto dto)
         {
-            var person = await _personRepository.GetByIdAsync(id);
+            var person =
+                await _personRepository.GetByIdAsync(id);
 
             if (person == null)
             {
-                return null;
+                throw new NotFoundException(
+                    "Person not found.");
             }
 
             if (string.IsNullOrWhiteSpace(dto.Phone))
             {
-                throw new ArgumentException(
+                throw new BadRequestException(
                     "Phone number is required.");
             }
 
             person.Phone = dto.Phone.Trim();
-            person.UpdateStatus = UpdateStatus.Updated;
+            person.UpdateStatus =
+                UpdateStatus.Updated;
             person.LastUpdate = DateTime.UtcNow;
 
             await _personRepository.SaveChangesAsync();
@@ -102,30 +115,32 @@ namespace WebApplication2.Services.Implementations
             return MapToResponseDto(person);
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task DeleteAsync(int id)
         {
-            var person = await _personRepository.GetByIdAsync(id);
+            var person =
+                await _personRepository.GetByIdAsync(id);
 
             if (person == null)
             {
-                return false;
+                throw new NotFoundException(
+                    "Person not found.");
             }
 
             var hasAssociation =
-                await _personRepository.HasTagAssociationAsync(id);
+                await _personRepository
+                    .HasTagAssociationAsync(id);
 
             if (hasAssociation)
             {
-                throw new InvalidOperationException(
+                throw new ConflictException(
                     "The person cannot be deleted because they are associated with a tag.");
             }
 
-            person.UpdateStatus = UpdateStatus.Deleted;
+            person.UpdateStatus =
+                UpdateStatus.Deleted;
             person.LastUpdate = DateTime.UtcNow;
 
             await _personRepository.SaveChangesAsync();
-
-            return true;
         }
 
         private static PersonResponseDto MapToResponseDto(

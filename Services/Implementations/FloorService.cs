@@ -1,4 +1,5 @@
 using WebApplication2.DTOs.Floors;
+using WebApplication2.Exceptions;
 using WebApplication2.Models;
 using WebApplication2.Repositories.Interfaces;
 using WebApplication2.Services.Interfaces;
@@ -27,13 +28,17 @@ namespace WebApplication2.Services.Implementations
                 .ToList();
         }
 
-        public async Task<FloorResponseDto?> GetByIdAsync(int id)
+        public async Task<FloorResponseDto> GetByIdAsync(int id)
         {
             var floor = await _floorRepository.GetByIdAsync(id);
 
-            return floor == null
-                ? null
-                : MapToResponseDto(floor);
+            if (floor == null)
+            {
+                throw new NotFoundException(
+                    "Floor not found.");
+            }
+
+            return MapToResponseDto(floor);
         }
 
         public async Task<FloorResponseDto> CreateAsync(
@@ -41,7 +46,7 @@ namespace WebApplication2.Services.Implementations
         {
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
-                throw new ArgumentException(
+                throw new BadRequestException(
                     "Floor name is required.");
             }
 
@@ -50,7 +55,7 @@ namespace WebApplication2.Services.Implementations
 
             if (venue == null)
             {
-                throw new ArgumentException(
+                throw new BadRequestException(
                     "The assigned venue does not exist.");
             }
 
@@ -64,7 +69,7 @@ namespace WebApplication2.Services.Implementations
 
             if (duplicateName)
             {
-                throw new InvalidOperationException(
+                throw new ConflictException(
                     "An active floor with this name already exists in the venue.");
             }
 
@@ -76,7 +81,7 @@ namespace WebApplication2.Services.Implementations
 
             if (duplicateLevel)
             {
-                throw new InvalidOperationException(
+                throw new ConflictException(
                     "An active floor with this level already exists in the venue.");
             }
 
@@ -98,7 +103,7 @@ namespace WebApplication2.Services.Implementations
             return MapToResponseDto(floor);
         }
 
-        public async Task<FloorResponseDto?> UpdateAsync(
+        public async Task<FloorResponseDto> UpdateAsync(
             int id,
             UpdateFloorDto dto)
         {
@@ -106,12 +111,13 @@ namespace WebApplication2.Services.Implementations
 
             if (floor == null)
             {
-                return null;
+                throw new NotFoundException(
+                    "Floor not found.");
             }
 
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
-                throw new ArgumentException(
+                throw new BadRequestException(
                     "Floor name is required.");
             }
 
@@ -126,7 +132,7 @@ namespace WebApplication2.Services.Implementations
 
             if (duplicateName)
             {
-                throw new InvalidOperationException(
+                throw new ConflictException(
                     "Another active floor with this name already exists in the venue.");
             }
 
@@ -139,7 +145,7 @@ namespace WebApplication2.Services.Implementations
 
             if (duplicateLevel)
             {
-                throw new InvalidOperationException(
+                throw new ConflictException(
                     "Another active floor with this level already exists in the venue.");
             }
 
@@ -153,13 +159,14 @@ namespace WebApplication2.Services.Implementations
             return MapToResponseDto(floor);
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task DeleteAsync(int id)
         {
             var floor = await _floorRepository.GetByIdAsync(id);
 
             if (floor == null)
             {
-                return false;
+                throw new NotFoundException(
+                    "Floor not found.");
             }
 
             var hasActiveZones =
@@ -167,7 +174,7 @@ namespace WebApplication2.Services.Implementations
 
             if (hasActiveZones)
             {
-                throw new InvalidOperationException(
+                throw new ConflictException(
                     "The floor cannot be deleted because it contains active zones.");
             }
 
@@ -175,8 +182,6 @@ namespace WebApplication2.Services.Implementations
             floor.LastUpdate = DateTime.UtcNow;
 
             await _floorRepository.SaveChangesAsync();
-
-            return true;
         }
 
         private static FloorResponseDto MapToResponseDto(

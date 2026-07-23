@@ -6,6 +6,7 @@ using WebApplication2.Repositories.Implementations;
 using WebApplication2.Repositories.Interfaces;
 using WebApplication2.Services.Implementations;
 using WebApplication2.Services.Interfaces;
+using WebApplication2.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +32,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 
 builder.Services.AddScoped<IVenueRepository, VenueRepository>();
+
 builder.Services.AddScoped<IVenueService, VenueService>();
 
 
@@ -54,6 +56,7 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

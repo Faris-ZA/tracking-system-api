@@ -1,4 +1,5 @@
 using WebApplication2.DTOs.Tags;
+using WebApplication2.Exceptions;
 using WebApplication2.Models;
 using WebApplication2.Repositories.Interfaces;
 using WebApplication2.Services.Interfaces;
@@ -9,27 +10,35 @@ namespace WebApplication2.Services.Implementations
     {
         private readonly ITagRepository _tagRepository;
 
-        public TagService(ITagRepository tagRepository)
+        public TagService(
+            ITagRepository tagRepository)
         {
             _tagRepository = tagRepository;
         }
 
         public async Task<List<TagResponseDto>> GetAllAsync()
         {
-            var tags = await _tagRepository.GetAllAsync();
+            var tags =
+                await _tagRepository.GetAllAsync();
 
             return tags
                 .Select(MapToResponseDto)
                 .ToList();
         }
 
-        public async Task<TagResponseDto?> GetByIdAsync(int id)
+        public async Task<TagResponseDto> GetByIdAsync(
+            int id)
         {
-            var tag = await _tagRepository.GetByIdAsync(id);
+            var tag =
+                await _tagRepository.GetByIdAsync(id);
 
-            return tag == null
-                ? null
-                : MapToResponseDto(tag);
+            if (tag == null)
+            {
+                throw new NotFoundException(
+                    "Tag not found.");
+            }
+
+            return MapToResponseDto(tag);
         }
 
         public async Task<TagResponseDto> CreateAsync(
@@ -37,13 +46,13 @@ namespace WebApplication2.Services.Implementations
         {
             if (string.IsNullOrWhiteSpace(dto.Label))
             {
-                throw new ArgumentException(
+                throw new BadRequestException(
                     "Tag label is required.");
             }
 
             if (string.IsNullOrWhiteSpace(dto.Mac))
             {
-                throw new ArgumentException(
+                throw new BadRequestException(
                     "Tag MAC address is required.");
             }
 
@@ -51,11 +60,12 @@ namespace WebApplication2.Services.Implementations
             var mac = dto.Mac.Trim();
 
             var duplicateExists =
-                await _tagRepository.ActiveMacExistsAsync(mac);
+                await _tagRepository
+                    .ActiveMacExistsAsync(mac);
 
             if (duplicateExists)
             {
-                throw new InvalidOperationException(
+                throw new ConflictException(
                     "An active tag with this MAC address already exists.");
             }
 
@@ -76,25 +86,28 @@ namespace WebApplication2.Services.Implementations
             return MapToResponseDto(tag);
         }
 
-        public async Task<TagResponseDto?> UpdateAsync(
+        public async Task<TagResponseDto> UpdateAsync(
             int id,
             UpdateTagDto dto)
         {
-            var tag = await _tagRepository.GetByIdAsync(id);
+            var tag =
+                await _tagRepository.GetByIdAsync(id);
 
             if (tag == null)
             {
-                return null;
+                throw new NotFoundException(
+                    "Tag not found.");
             }
 
             if (string.IsNullOrWhiteSpace(dto.Label))
             {
-                throw new ArgumentException(
+                throw new BadRequestException(
                     "Tag label is required.");
             }
 
             tag.Label = dto.Label.Trim();
-            tag.UpdateStatus = UpdateStatus.Updated;
+            tag.UpdateStatus =
+                UpdateStatus.Updated;
             tag.LastUpdate = DateTime.UtcNow;
 
             await _tagRepository.SaveChangesAsync();
@@ -102,33 +115,36 @@ namespace WebApplication2.Services.Implementations
             return MapToResponseDto(tag);
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task DeleteAsync(int id)
         {
-            var tag = await _tagRepository.GetByIdAsync(id);
+            var tag =
+                await _tagRepository.GetByIdAsync(id);
 
             if (tag == null)
             {
-                return false;
+                throw new NotFoundException(
+                    "Tag not found.");
             }
 
             var hasAssociation =
-                await _tagRepository.HasPeopleAssociationAsync(id);
+                await _tagRepository
+                    .HasPeopleAssociationAsync(id);
 
             if (hasAssociation)
             {
-                throw new InvalidOperationException(
+                throw new ConflictException(
                     "The tag cannot be deleted because it is associated with a person.");
             }
 
-            tag.UpdateStatus = UpdateStatus.Deleted;
+            tag.UpdateStatus =
+                UpdateStatus.Deleted;
             tag.LastUpdate = DateTime.UtcNow;
 
             await _tagRepository.SaveChangesAsync();
-
-            return true;
         }
 
-        private static TagResponseDto MapToResponseDto(Tag tag)
+        private static TagResponseDto MapToResponseDto(
+            Tag tag)
         {
             return new TagResponseDto
             {
@@ -141,4 +157,3 @@ namespace WebApplication2.Services.Implementations
         }
     }
 }
-

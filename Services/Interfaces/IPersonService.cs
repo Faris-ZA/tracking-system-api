@@ -6,14 +6,15 @@ namespace WebApplication2.Services.Interfaces
     {
         Task<List<PersonResponseDto>> GetAllAsync();
 
-        Task<PersonResponseDto?> GetByIdAsync(int id);
+        Task<PersonResponseDto> GetByIdAsync(int id);
 
-        Task<PersonResponseDto> CreateAsync(CreatePersonDto dto);
+        Task<PersonResponseDto> CreateAsync(
+            CreatePersonDto dto);
 
-        Task<PersonResponseDto?> UpdateAsync(
+        Task<PersonResponseDto> UpdateAsync(
             int id,
             UpdatePersonDto dto);
 
-        Task<bool> DeleteAsync(int id);
+        Task DeleteAsync(int id);
     }
 }

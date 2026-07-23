@@ -6,14 +6,14 @@ namespace WebApplication2.Services.Interfaces
     {
         Task<List<FloorResponseDto>> GetAllAsync();
 
-        Task<FloorResponseDto?> GetByIdAsync(int id);
+        Task<FloorResponseDto> GetByIdAsync(int id);
 
         Task<FloorResponseDto> CreateAsync(CreateFloorDto dto);
 
-        Task<FloorResponseDto?> UpdateAsync(
+        Task<FloorResponseDto> UpdateAsync(
             int id,
             UpdateFloorDto dto);
 
-        Task<bool> DeleteAsync(int id);
+        Task DeleteAsync(int id);
     }
 }

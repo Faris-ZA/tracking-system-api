@@ -10,7 +10,8 @@ namespace WebApplication2.Controllers
     {
         private readonly IPersonService _personService;
 
-        public PeopleController(IPersonService personService)
+        public PeopleController(
+            IPersonService personService)
         {
             _personService = personService;
         }
@@ -18,55 +19,29 @@ namespace WebApplication2.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var people = await _personService.GetAllAsync();
+            var result =
+                await _personService.GetAllAsync();
 
-            return Ok(people);
+            return Ok(result);
         }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var person = await _personService.GetByIdAsync(id);
+            var result =
+                await _personService.GetByIdAsync(id);
 
-            if (person == null)
-            {
-                return NotFound(new
-                {
-                    message = "Person not found."
-                });
-            }
-
-            return Ok(person);
+            return Ok(result);
         }
 
         [HttpPost]
         public async Task<IActionResult> Create(
             CreatePersonDto dto)
         {
-            try
-            {
-                var person =
-                    await _personService.CreateAsync(dto);
+            var result =
+                await _personService.CreateAsync(dto);
 
-                return CreatedAtAction(
-                    nameof(GetById),
-                    new { id = person.Id },
-                    person);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new
-                {
-                    message = ex.Message
-                });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new
-                {
-                    message = ex.Message
-                });
-            }
+            return Ok(result);
         }
 
         [HttpPut("{id:int}")]
@@ -74,55 +49,20 @@ namespace WebApplication2.Controllers
             int id,
             UpdatePersonDto dto)
         {
-            try
-            {
-                var person =
-                    await _personService.UpdateAsync(id, dto);
+            var result =
+                await _personService.UpdateAsync(
+                    id,
+                    dto);
 
-                if (person == null)
-                {
-                    return NotFound(new
-                    {
-                        message = "Person not found."
-                    });
-                }
-
-                return Ok(person);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new
-                {
-                    message = ex.Message
-                });
-            }
+            return Ok(result);
         }
 
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            try
-            {
-                var deleted =
-                    await _personService.DeleteAsync(id);
+            await _personService.DeleteAsync(id);
 
-                if (!deleted)
-                {
-                    return NotFound(new
-                    {
-                        message = "Person not found."
-                    });
-                }
-
-                return NoContent();
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new
-                {
-                    message = ex.Message
-                });
-            }
+            return NoContent();
         }
     }
 }

@@ -1,4 +1,5 @@
 using WebApplication2.DTOs.Venues;
+using WebApplication2.Exceptions;
 using WebApplication2.Models;
 using WebApplication2.Repositories.Interfaces;
 using WebApplication2.Services.Interfaces;
@@ -23,39 +24,44 @@ namespace WebApplication2.Services.Implementations
                 .ToList();
         }
 
-        public async Task<VenueResponseDto?> GetByIdAsync(int id)
+        public async Task<VenueResponseDto> GetByIdAsync(int id)
         {
             var venue = await _venueRepository.GetByIdAsync(id);
 
             if (venue == null)
             {
-                return null;
+                throw new NotFoundException(
+                    "Venue not found.");
             }
 
             return MapToResponseDto(venue);
         }
 
-        public async Task<VenueResponseDto> CreateAsync(CreateVenueDto dto)
+        public async Task<VenueResponseDto> CreateAsync(
+            CreateVenueDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
-                throw new ArgumentException("Venue name is required.");
+                throw new BadRequestException(
+                    "Venue name is required.");
             }
 
             if (string.IsNullOrWhiteSpace(dto.City))
             {
-                throw new ArgumentException("Venue city is required.");
+                throw new BadRequestException(
+                    "Venue city is required.");
             }
 
             var name = dto.Name.Trim();
             var city = dto.City.Trim();
 
             var duplicateExists =
-                await _venueRepository.ActiveNameExistsAsync(name);
+                await _venueRepository
+                    .ActiveNameExistsAsync(name);
 
             if (duplicateExists)
             {
-                throw new InvalidOperationException(
+                throw new ConflictException(
                     "An active venue with this name already exists.");
             }
 
@@ -76,7 +82,7 @@ namespace WebApplication2.Services.Implementations
             return MapToResponseDto(venue);
         }
 
-        public async Task<VenueResponseDto?> UpdateAsync(
+        public async Task<VenueResponseDto> UpdateAsync(
             int id,
             UpdateVenueDto dto)
         {
@@ -84,17 +90,20 @@ namespace WebApplication2.Services.Implementations
 
             if (venue == null)
             {
-                return null;
+                throw new NotFoundException(
+                    "Venue not found.");
             }
 
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
-                throw new ArgumentException("Venue name is required.");
+                throw new BadRequestException(
+                    "Venue name is required.");
             }
 
             if (string.IsNullOrWhiteSpace(dto.City))
             {
-                throw new ArgumentException("Venue city is required.");
+                throw new BadRequestException(
+                    "Venue city is required.");
             }
 
             var name = dto.Name.Trim();
@@ -107,7 +116,7 @@ namespace WebApplication2.Services.Implementations
 
             if (duplicateExists)
             {
-                throw new InvalidOperationException(
+                throw new ConflictException(
                     "Another active venue with this name already exists.");
             }
 
@@ -121,13 +130,14 @@ namespace WebApplication2.Services.Implementations
             return MapToResponseDto(venue);
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task DeleteAsync(int id)
         {
             var venue = await _venueRepository.GetByIdAsync(id);
 
             if (venue == null)
             {
-                return false;
+                throw new NotFoundException(
+                    "Venue not found.");
             }
 
             var hasActiveFloors =
@@ -135,7 +145,7 @@ namespace WebApplication2.Services.Implementations
 
             if (hasActiveFloors)
             {
-                throw new InvalidOperationException(
+                throw new ConflictException(
                     "The venue cannot be deleted because it contains active floors.");
             }
 
@@ -143,11 +153,10 @@ namespace WebApplication2.Services.Implementations
             venue.LastUpdate = DateTime.UtcNow;
 
             await _venueRepository.SaveChangesAsync();
-
-            return true;
         }
 
-        private static VenueResponseDto MapToResponseDto(Venue venue)
+        private static VenueResponseDto MapToResponseDto(
+            Venue venue)
         {
             return new VenueResponseDto
             {

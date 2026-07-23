@@ -1,4 +1,5 @@
 using WebApplication2.DTOs.Zones;
+using WebApplication2.Exceptions;
 using WebApplication2.Models;
 using WebApplication2.Repositories.Interfaces;
 using WebApplication2.Services.Interfaces;
@@ -27,13 +28,17 @@ namespace WebApplication2.Services.Implementations
                 .ToList();
         }
 
-        public async Task<ZoneResponseDto?> GetByIdAsync(int id)
+        public async Task<ZoneResponseDto> GetByIdAsync(int id)
         {
             var zone = await _zoneRepository.GetByIdAsync(id);
 
-            return zone == null
-                ? null
-                : MapToResponseDto(zone);
+            if (zone == null)
+            {
+                throw new NotFoundException(
+                    "Zone not found.");
+            }
+
+            return MapToResponseDto(zone);
         }
 
         public async Task<ZoneResponseDto> CreateAsync(
@@ -41,7 +46,7 @@ namespace WebApplication2.Services.Implementations
         {
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
-                throw new ArgumentException(
+                throw new BadRequestException(
                     "Zone name is required.");
             }
 
@@ -50,7 +55,7 @@ namespace WebApplication2.Services.Implementations
 
             if (floor == null)
             {
-                throw new ArgumentException(
+                throw new BadRequestException(
                     "The assigned floor does not exist.");
             }
 
@@ -64,7 +69,7 @@ namespace WebApplication2.Services.Implementations
 
             if (duplicateExists)
             {
-                throw new InvalidOperationException(
+                throw new ConflictException(
                     "An active zone with this name already exists on the floor.");
             }
 
@@ -85,7 +90,7 @@ namespace WebApplication2.Services.Implementations
             return MapToResponseDto(zone);
         }
 
-        public async Task<ZoneResponseDto?> UpdateAsync(
+        public async Task<ZoneResponseDto> UpdateAsync(
             int id,
             UpdateZoneDto dto)
         {
@@ -93,12 +98,13 @@ namespace WebApplication2.Services.Implementations
 
             if (zone == null)
             {
-                return null;
+                throw new NotFoundException(
+                    "Zone not found.");
             }
 
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
-                throw new ArgumentException(
+                throw new BadRequestException(
                     "Zone name is required.");
             }
 
@@ -113,7 +119,7 @@ namespace WebApplication2.Services.Implementations
 
             if (duplicateExists)
             {
-                throw new InvalidOperationException(
+                throw new ConflictException(
                     "Another active zone with this name already exists on the floor.");
             }
 
@@ -126,13 +132,14 @@ namespace WebApplication2.Services.Implementations
             return MapToResponseDto(zone);
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task DeleteAsync(int id)
         {
             var zone = await _zoneRepository.GetByIdAsync(id);
 
             if (zone == null)
             {
-                return false;
+                throw new NotFoundException(
+                    "Zone not found.");
             }
 
             await _zoneRepository.RemovePolygonPointsAsync(id);
@@ -141,11 +148,10 @@ namespace WebApplication2.Services.Implementations
             zone.LastUpdate = DateTime.UtcNow;
 
             await _zoneRepository.SaveChangesAsync();
-
-            return true;
         }
 
-        private static ZoneResponseDto MapToResponseDto(Zone zone)
+        private static ZoneResponseDto MapToResponseDto(
+            Zone zone)
         {
             return new ZoneResponseDto
             {

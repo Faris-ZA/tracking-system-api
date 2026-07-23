@@ -18,55 +18,27 @@ namespace WebApplication2.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var floors = await _floorService.GetAllAsync();
+            var result = await _floorService.GetAllAsync();
 
-            return Ok(floors);
+            return Ok(result);
         }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var floor = await _floorService.GetByIdAsync(id);
+            var result = await _floorService.GetByIdAsync(id);
 
-            if (floor == null)
-            {
-                return NotFound(new
-                {
-                    message = "Floor not found."
-                });
-            }
-
-            return Ok(floor);
+            return Ok(result);
         }
 
         [HttpPost]
         public async Task<IActionResult> Create(
             CreateFloorDto dto)
         {
-            try
-            {
-                var floor =
-                    await _floorService.CreateAsync(dto);
+            var result =
+                await _floorService.CreateAsync(dto);
 
-                return CreatedAtAction(
-                    nameof(GetById),
-                    new { id = floor.Id },
-                    floor);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new
-                {
-                    message = ex.Message
-                });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new
-                {
-                    message = ex.Message
-                });
-            }
+            return Ok(result);
         }
 
         [HttpPut("{id:int}")]
@@ -74,62 +46,18 @@ namespace WebApplication2.Controllers
             int id,
             UpdateFloorDto dto)
         {
-            try
-            {
-                var floor =
-                    await _floorService.UpdateAsync(id, dto);
+            var result =
+                await _floorService.UpdateAsync(id, dto);
 
-                if (floor == null)
-                {
-                    return NotFound(new
-                    {
-                        message = "Floor not found."
-                    });
-                }
-
-                return Ok(floor);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new
-                {
-                    message = ex.Message
-                });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new
-                {
-                    message = ex.Message
-                });
-            }
+            return Ok(result);
         }
 
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            try
-            {
-                var deleted =
-                    await _floorService.DeleteAsync(id);
+            await _floorService.DeleteAsync(id);
 
-                if (!deleted)
-                {
-                    return NotFound(new
-                    {
-                        message = "Floor not found."
-                    });
-                }
-
-                return NoContent();
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new
-                {
-                    message = ex.Message
-                });
-            }
+            return NoContent();
         }
     }
 }

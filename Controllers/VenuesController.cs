@@ -18,53 +18,27 @@ namespace WebApplication2.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var venues = await _venueService.GetAllAsync();
+            var result = await _venueService.GetAllAsync();
 
-            return Ok(venues);
+            return Ok(result);
         }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var venue = await _venueService.GetByIdAsync(id);
+            var result = await _venueService.GetByIdAsync(id);
 
-            if (venue == null)
-            {
-                return NotFound(new
-                {
-                    message = "Venue not found."
-                });
-            }
-
-            return Ok(venue);
+            return Ok(result);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(CreateVenueDto dto)
+        public async Task<IActionResult> Create(
+            CreateVenueDto dto)
         {
-            try
-            {
-                var venue = await _venueService.CreateAsync(dto);
+            var result =
+                await _venueService.CreateAsync(dto);
 
-                return CreatedAtAction(
-                    nameof(GetById),
-                    new { id = venue.Id },
-                    venue);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new
-                {
-                    message = ex.Message
-                });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new
-                {
-                    message = ex.Message
-                });
-            }
+            return Ok(result);
         }
 
         [HttpPut("{id:int}")]
@@ -72,60 +46,18 @@ namespace WebApplication2.Controllers
             int id,
             UpdateVenueDto dto)
         {
-            try
-            {
-                var venue = await _venueService.UpdateAsync(id, dto);
+            var result =
+                await _venueService.UpdateAsync(id, dto);
 
-                if (venue == null)
-                {
-                    return NotFound(new
-                    {
-                        message = "Venue not found."
-                    });
-                }
-
-                return Ok(venue);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new
-                {
-                    message = ex.Message
-                });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new
-                {
-                    message = ex.Message
-                });
-            }
+            return Ok(result);
         }
 
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            try
-            {
-                var deleted = await _venueService.DeleteAsync(id);
+            await _venueService.DeleteAsync(id);
 
-                if (!deleted)
-                {
-                    return NotFound(new
-                    {
-                        message = "Venue not found."
-                    });
-                }
-
-                return NoContent();
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new
-                {
-                    message = ex.Message
-                });
-            }
+            return NoContent();
         }
     }
 }
