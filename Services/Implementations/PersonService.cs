@@ -1,3 +1,4 @@
+using WebApplication2.Constants;
 using WebApplication2.DTOs.People;
 using WebApplication2.Exceptions;
 using WebApplication2.Models;
@@ -35,7 +36,9 @@ namespace WebApplication2.Services.Implementations
             if (person == null)
             {
                 throw new NotFoundException(
-                    "Person not found.");
+                    string.Format(
+                        ErrorMessages.NotFound, 
+                        "Person"));
             }
 
             return MapToResponseDto(person);
@@ -47,13 +50,17 @@ namespace WebApplication2.Services.Implementations
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
                 throw new BadRequestException(
-                    "Person name is required.");
+                    string.Format(
+                        ErrorMessages.Required,
+                        "Person name"));
             }
 
             if (string.IsNullOrWhiteSpace(dto.Phone))
             {
                 throw new BadRequestException(
-                    "Phone number is required.");
+                    string.Format(
+                        ErrorMessages.Required,
+                        "Phone number"));
             }
 
             var name = dto.Name.Trim();
@@ -66,7 +73,11 @@ namespace WebApplication2.Services.Implementations
             if (duplicateExists)
             {
                 throw new ConflictException(
-                    "An active person with this name already exists.");
+                    string.Format(
+                        ErrorMessages.ActiveDuplicate, 
+                        "person",
+                        "name",
+                        ""));
             }
 
             var currentTime = DateTime.UtcNow;
@@ -96,13 +107,17 @@ namespace WebApplication2.Services.Implementations
             if (person == null)
             {
                 throw new NotFoundException(
-                    "Person not found.");
+                    string.Format(
+                        ErrorMessages.NotFound,
+                        "Person"));
             }
 
             if (string.IsNullOrWhiteSpace(dto.Phone))
             {
                 throw new BadRequestException(
-                    "Phone number is required.");
+                    string.Format(
+                        ErrorMessages.Required,
+                        "Phone number"));
             }
 
             person.Phone = dto.Phone.Trim();
@@ -123,7 +138,9 @@ namespace WebApplication2.Services.Implementations
             if (person == null)
             {
                 throw new NotFoundException(
-                    "Person not found.");
+                    string.Format(
+                        ErrorMessages.NotFound,
+                        "Person"));
             }
 
             var hasAssociation =
@@ -133,7 +150,10 @@ namespace WebApplication2.Services.Implementations
             if (hasAssociation)
             {
                 throw new ConflictException(
-                    "The person cannot be deleted because they are associated with a tag.");
+                    string.Format(
+                        ErrorMessages.CannotDeleteBecauseAssociated,
+                        "person",
+                        "tag"));
             }
 
             person.UpdateStatus =
@@ -157,3 +177,5 @@ namespace WebApplication2.Services.Implementations
         }
     }
 }
+
+

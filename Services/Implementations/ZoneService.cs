@@ -1,3 +1,4 @@
+using WebApplication2.Constants;
 using WebApplication2.DTOs.Zones;
 using WebApplication2.Exceptions;
 using WebApplication2.Models;
@@ -35,7 +36,9 @@ namespace WebApplication2.Services.Implementations
             if (zone == null)
             {
                 throw new NotFoundException(
-                    "Zone not found.");
+                    string.Format(
+                        ErrorMessages.NotFound,
+                        "Zone"));
             }
 
             return MapToResponseDto(zone);
@@ -47,7 +50,9 @@ namespace WebApplication2.Services.Implementations
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
                 throw new BadRequestException(
-                    "Zone name is required.");
+                    string.Format(
+                        ErrorMessages.Required,
+                        "Zone name"));
             }
 
             var floor =
@@ -56,7 +61,9 @@ namespace WebApplication2.Services.Implementations
             if (floor == null)
             {
                 throw new BadRequestException(
-                    "The assigned floor does not exist.");
+                    string.Format(
+                        ErrorMessages.AssignedEntityNotFound,
+                        "floor"));
             }
 
             var name = dto.Name.Trim();
@@ -70,7 +77,11 @@ namespace WebApplication2.Services.Implementations
             if (duplicateExists)
             {
                 throw new ConflictException(
-                    "An active zone with this name already exists on the floor.");
+                    string.Format(
+                        ErrorMessages.ActiveDuplicate,
+                        "zone",
+                        "name",
+                        " on the floor"));
             }
 
             var currentTime = DateTime.UtcNow;
@@ -99,13 +110,17 @@ namespace WebApplication2.Services.Implementations
             if (zone == null)
             {
                 throw new NotFoundException(
-                    "Zone not found.");
+                    string.Format(
+                        ErrorMessages.NotFound,
+                        "Zone"));
             }
 
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
                 throw new BadRequestException(
-                    "Zone name is required.");
+                    string.Format(
+                        ErrorMessages.Required,
+                        "Zone name"));
             }
 
             var name = dto.Name.Trim();
@@ -120,7 +135,11 @@ namespace WebApplication2.Services.Implementations
             if (duplicateExists)
             {
                 throw new ConflictException(
-                    "Another active zone with this name already exists on the floor.");
+                    string.Format(
+                        ErrorMessages.AnotherActiveDuplicate,
+                        "zone",
+                        "name",
+                        " on the floor"));
             }
 
             zone.Name = name;
@@ -139,7 +158,9 @@ namespace WebApplication2.Services.Implementations
             if (zone == null)
             {
                 throw new NotFoundException(
-                    "Zone not found.");
+                    string.Format(
+                        ErrorMessages.NotFound,
+                        "Zone"));
             }
 
             await _zoneRepository.RemovePolygonPointsAsync(id);
@@ -164,3 +185,5 @@ namespace WebApplication2.Services.Implementations
         }
     }
 }
+
+

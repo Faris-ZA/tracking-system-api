@@ -1,3 +1,4 @@
+using WebApplication2.Constants;
 using WebApplication2.DTOs.Floors;
 using WebApplication2.Exceptions;
 using WebApplication2.Models;
@@ -35,7 +36,9 @@ namespace WebApplication2.Services.Implementations
             if (floor == null)
             {
                 throw new NotFoundException(
-                    "Floor not found.");
+                    string.Format(
+                        ErrorMessages.NotFound,
+                        "Floor"));
             }
 
             return MapToResponseDto(floor);
@@ -47,7 +50,9 @@ namespace WebApplication2.Services.Implementations
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
                 throw new BadRequestException(
-                    "Floor name is required.");
+                    string.Format(
+                        ErrorMessages.Required, 
+                        "Floor name"));
             }
 
             var venue =
@@ -56,7 +61,9 @@ namespace WebApplication2.Services.Implementations
             if (venue == null)
             {
                 throw new BadRequestException(
-                    "The assigned venue does not exist.");
+                    string.Format(
+                        ErrorMessages.AssignedEntityNotFound,
+                        "venue"));
             }
 
             var name = dto.Name.Trim();
@@ -70,7 +77,11 @@ namespace WebApplication2.Services.Implementations
             if (duplicateName)
             {
                 throw new ConflictException(
-                    "An active floor with this name already exists in the venue.");
+                    string.Format(
+                        ErrorMessages.ActiveDuplicate, 
+                        "floor",
+                        "name", 
+                        " in the venue"));
             }
 
             var duplicateLevel =
@@ -82,7 +93,11 @@ namespace WebApplication2.Services.Implementations
             if (duplicateLevel)
             {
                 throw new ConflictException(
-                    "An active floor with this level already exists in the venue.");
+                    string.Format(
+                        ErrorMessages.ActiveDuplicate, 
+                        "floor",
+                        "level",
+                        " in the venue"));
             }
 
             var currentTime = DateTime.UtcNow;
@@ -112,13 +127,17 @@ namespace WebApplication2.Services.Implementations
             if (floor == null)
             {
                 throw new NotFoundException(
-                    "Floor not found.");
+                    string.Format(
+                        ErrorMessages.NotFound,
+                        "Floor"));
             }
 
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
                 throw new BadRequestException(
-                    "Floor name is required.");
+                    string.Format(
+                        ErrorMessages.Required,
+                        "Floor name"));
             }
 
             var name = dto.Name.Trim();
@@ -133,7 +152,9 @@ namespace WebApplication2.Services.Implementations
             if (duplicateName)
             {
                 throw new ConflictException(
-                    "Another active floor with this name already exists in the venue.");
+                    string.Format(
+                        ErrorMessages.AnotherActiveDuplicate,
+                        "floor", "name", " in the venue"));
             }
 
             var duplicateLevel =
@@ -146,7 +167,9 @@ namespace WebApplication2.Services.Implementations
             if (duplicateLevel)
             {
                 throw new ConflictException(
-                    "Another active floor with this level already exists in the venue.");
+                    string.Format(
+                        ErrorMessages.AnotherActiveDuplicate,
+                        "floor", "level", " in the venue"));
             }
 
             floor.Name = name;
@@ -166,7 +189,9 @@ namespace WebApplication2.Services.Implementations
             if (floor == null)
             {
                 throw new NotFoundException(
-                    "Floor not found.");
+                    string.Format(
+                        ErrorMessages.NotFound, 
+                        "Floor"));
             }
 
             var hasActiveZones =
@@ -175,7 +200,10 @@ namespace WebApplication2.Services.Implementations
             if (hasActiveZones)
             {
                 throw new ConflictException(
-                    "The floor cannot be deleted because it contains active zones.");
+                    string.Format(
+                        ErrorMessages.CannotDeleteWithActiveChildren,
+                        "floor", 
+                        "zones"));
             }
 
             floor.UpdateStatus = UpdateStatus.Deleted;
@@ -199,3 +227,5 @@ namespace WebApplication2.Services.Implementations
         }
     }
 }
+
+

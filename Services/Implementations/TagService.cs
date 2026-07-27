@@ -1,3 +1,4 @@
+using WebApplication2.Constants;
 using WebApplication2.DTOs.Tags;
 using WebApplication2.Exceptions;
 using WebApplication2.Models;
@@ -35,7 +36,9 @@ namespace WebApplication2.Services.Implementations
             if (tag == null)
             {
                 throw new NotFoundException(
-                    "Tag not found.");
+                    string.Format(
+                        ErrorMessages.NotFound,
+                        "Tag"));
             }
 
             return MapToResponseDto(tag);
@@ -47,13 +50,17 @@ namespace WebApplication2.Services.Implementations
             if (string.IsNullOrWhiteSpace(dto.Label))
             {
                 throw new BadRequestException(
-                    "Tag label is required.");
+                    string.Format(
+                        ErrorMessages.Required,
+                        "Tag label"));
             }
 
             if (string.IsNullOrWhiteSpace(dto.Mac))
             {
                 throw new BadRequestException(
-                    "Tag MAC address is required.");
+                    string.Format(
+                        ErrorMessages.Required,
+                        "Tag MAC address"));
             }
 
             var label = dto.Label.Trim();
@@ -66,7 +73,11 @@ namespace WebApplication2.Services.Implementations
             if (duplicateExists)
             {
                 throw new ConflictException(
-                    "An active tag with this MAC address already exists.");
+                    string.Format(
+                        ErrorMessages.ActiveDuplicate,
+                        "tag",
+                        "MAC address",
+                        ""));
             }
 
             var currentTime = DateTime.UtcNow;
@@ -96,13 +107,17 @@ namespace WebApplication2.Services.Implementations
             if (tag == null)
             {
                 throw new NotFoundException(
-                    "Tag not found.");
+                    string.Format(
+                        ErrorMessages.NotFound,
+                        "Tag"));
             }
 
             if (string.IsNullOrWhiteSpace(dto.Label))
             {
                 throw new BadRequestException(
-                    "Tag label is required.");
+                    string.Format(
+                        ErrorMessages.Required,
+                        "Tag label"));
             }
 
             tag.Label = dto.Label.Trim();
@@ -123,7 +138,9 @@ namespace WebApplication2.Services.Implementations
             if (tag == null)
             {
                 throw new NotFoundException(
-                    "Tag not found.");
+                    string.Format(
+                        ErrorMessages.NotFound,
+                        "Tag"));
             }
 
             var hasAssociation =
@@ -133,7 +150,10 @@ namespace WebApplication2.Services.Implementations
             if (hasAssociation)
             {
                 throw new ConflictException(
-                    "The tag cannot be deleted because it is associated with a person.");
+                    string.Format(
+                        ErrorMessages.CannotDeleteBecauseAssociated, 
+                        "tag",
+                        "person"));
             }
 
             tag.UpdateStatus =
@@ -157,3 +177,5 @@ namespace WebApplication2.Services.Implementations
         }
     }
 }
+
+

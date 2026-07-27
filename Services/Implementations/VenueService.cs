@@ -3,6 +3,7 @@ using WebApplication2.Exceptions;
 using WebApplication2.Models;
 using WebApplication2.Repositories.Interfaces;
 using WebApplication2.Services.Interfaces;
+using WebApplication2.Constants;
 
 namespace WebApplication2.Services.Implementations
 {
@@ -31,7 +32,9 @@ namespace WebApplication2.Services.Implementations
             if (venue == null)
             {
                 throw new NotFoundException(
-                    "Venue not found.");
+                    string.Format(
+                        ErrorMessages.NotFound,
+                        "Venue"));
             }
 
             return MapToResponseDto(venue);
@@ -43,13 +46,17 @@ namespace WebApplication2.Services.Implementations
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
                 throw new BadRequestException(
-                    "Venue name is required.");
+                    string.Format(
+                        ErrorMessages.Required,
+                        "Venue name"));
             }
 
             if (string.IsNullOrWhiteSpace(dto.City))
             {
                 throw new BadRequestException(
-                    "Venue city is required.");
+                    string.Format(
+                        ErrorMessages.Required,
+                        "Venue city"));
             }
 
             var name = dto.Name.Trim();
@@ -62,7 +69,11 @@ namespace WebApplication2.Services.Implementations
             if (duplicateExists)
             {
                 throw new ConflictException(
-                    "An active venue with this name already exists.");
+                    string.Format(
+                        ErrorMessages.ActiveDuplicate,
+                        "Venue",
+                        "name",
+                         ""));
             }
 
             var currentTime = DateTime.UtcNow;
@@ -91,19 +102,25 @@ namespace WebApplication2.Services.Implementations
             if (venue == null)
             {
                 throw new NotFoundException(
-                    "Venue not found.");
+                    string.Format(
+                        ErrorMessages.NotFound,
+                        "Venue"));
             }
 
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
                 throw new BadRequestException(
-                    "Venue name is required.");
+                    string.Format(
+                        ErrorMessages.Required,
+                        "Venue name"));
             }
 
             if (string.IsNullOrWhiteSpace(dto.City))
             {
                 throw new BadRequestException(
-                    "Venue city is required.");
+                    string.Format(
+                        ErrorMessages.Required,
+                        "Venue city"));
             }
 
             var name = dto.Name.Trim();
@@ -117,7 +134,11 @@ namespace WebApplication2.Services.Implementations
             if (duplicateExists)
             {
                 throw new ConflictException(
-                    "Another active venue with this name already exists.");
+                    string.Format(
+                        ErrorMessages.AnotherActiveDuplicate,
+                        "venue",
+                        "name", 
+                        ""));
             }
 
             venue.Name = name;
@@ -137,7 +158,9 @@ namespace WebApplication2.Services.Implementations
             if (venue == null)
             {
                 throw new NotFoundException(
-                    "Venue not found.");
+                    string.Format(
+                        ErrorMessages.NotFound,
+                        "Venue"));
             }
 
             var hasActiveFloors =
@@ -146,7 +169,10 @@ namespace WebApplication2.Services.Implementations
             if (hasActiveFloors)
             {
                 throw new ConflictException(
-                    "The venue cannot be deleted because it contains active floors.");
+                    string.Format(
+                        ErrorMessages.CannotDeleteWithActiveChildren, 
+                        "venue", 
+                        "floors"));
             }
 
             venue.UpdateStatus = UpdateStatus.Deleted;
@@ -169,3 +195,5 @@ namespace WebApplication2.Services.Implementations
         }
     }
 }
+
+
