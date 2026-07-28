@@ -1,4 +1,3 @@
-using System.Reflection.Emit;
 using Microsoft.EntityFrameworkCore;
 using WebApplication2.Models;
 
@@ -12,12 +11,24 @@ namespace WebApplication2.Data
         }
 
         public DbSet<Person> People { get; set; }
+
         public DbSet<Tag> Tags { get; set; }
+
         public DbSet<PeopleTagAssociation> PeopleTagAssociations { get; set; }
+
         public DbSet<Venue> Venues { get; set; }
+
         public DbSet<Floor> Floors { get; set; }
+
         public DbSet<Zone> Zones { get; set; }
+
         public DbSet<ZonePolygonPoint> ZonePolygonPoints { get; set; }
+
+        public DbSet<LastPosition> LastPositions { get; set; }
+
+        public DbSet<PositionHistory> PositionHistories { get; set; }
+
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -30,6 +41,8 @@ namespace WebApplication2.Data
             ConfigureFloors(modelBuilder);
             ConfigureZones(modelBuilder);
             ConfigureZonePolygonPoints(modelBuilder);
+            ConfigureLastPositions(modelBuilder);
+            ConfigurePositionHistories(modelBuilder);
         }
 
         private static void ConfigurePeople(ModelBuilder modelBuilder)
@@ -255,6 +268,116 @@ namespace WebApplication2.Data
 
                 entity.HasOne(p => p.Zone)
                     .WithMany(z => z.PolygonPoints)
+                    .HasForeignKey(p => p.ZoneId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+        }
+
+        private static void ConfigureLastPositions(
+            ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<LastPosition>(entity =>
+            {
+                entity.ToTable("tbllast_position");
+
+                entity.HasKey(p => p.PeopleId);
+
+                entity.Property(p => p.PeopleId)
+                    .HasColumnName("people_id");
+
+                entity.Property(p => p.VenueId)
+                    .HasColumnName("venue_id");
+
+                entity.Property(p => p.FloorId)
+                    .HasColumnName("floor_id");
+
+                entity.Property(p => p.ZoneId)
+                    .HasColumnName("zone_id");
+
+                entity.Property(p => p.X)
+                    .HasColumnName("x");
+
+                entity.Property(p => p.Y)
+                    .HasColumnName("y");
+
+                entity.Property(p => p.CreateDate)
+                    .HasColumnName("create_date");
+
+                entity.Property(p => p.LastUpdate)
+                    .HasColumnName("last_update");
+
+                entity.HasOne(p => p.Person)
+                    .WithMany()
+                    .HasForeignKey(p => p.PeopleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(p => p.Venue)
+                    .WithMany()
+                    .HasForeignKey(p => p.VenueId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(p => p.Floor)
+                    .WithMany()
+                    .HasForeignKey(p => p.FloorId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(p => p.Zone)
+                    .WithMany()
+                    .HasForeignKey(p => p.ZoneId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+        }
+
+        private static void ConfigurePositionHistories(
+            ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<PositionHistory>(entity =>
+            {
+                entity.ToTable("tblposition_history");
+
+                entity.HasKey(p => p.Id);
+
+                entity.Property(p => p.Id)
+                    .HasColumnName("id");
+
+                entity.Property(p => p.PeopleId)
+                    .HasColumnName("people_id");
+
+                entity.Property(p => p.VenueId)
+                    .HasColumnName("venue_id");
+
+                entity.Property(p => p.FloorId)
+                    .HasColumnName("floor_id");
+
+                entity.Property(p => p.ZoneId)
+                    .HasColumnName("zone_id");
+
+                entity.Property(p => p.X)
+                    .HasColumnName("x");
+
+                entity.Property(p => p.Y)
+                    .HasColumnName("y");
+
+                entity.Property(p => p.CreateDate)
+                    .HasColumnName("create_date");
+
+                entity.HasOne(p => p.Person)
+                    .WithMany()
+                    .HasForeignKey(p => p.PeopleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(p => p.Venue)
+                    .WithMany()
+                    .HasForeignKey(p => p.VenueId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(p => p.Floor)
+                    .WithMany()
+                    .HasForeignKey(p => p.FloorId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(p => p.Zone)
+                    .WithMany()
                     .HasForeignKey(p => p.ZoneId)
                     .OnDelete(DeleteBehavior.Restrict);
             });

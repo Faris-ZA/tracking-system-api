@@ -30,9 +30,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
                 nameTranslator: new NpgsqlNullNameTranslator());
         }));
 
-
 builder.Services.AddScoped<IVenueRepository, VenueRepository>();
-
 builder.Services.AddScoped<IVenueService, VenueService>();
 
 
@@ -51,6 +49,11 @@ builder.Services.AddScoped<IPersonService, PersonService>();
 builder.Services.AddScoped<ITagRepository, TagRepository>();
 builder.Services.AddScoped<ITagService, TagService>();
 
+builder.Services.AddScoped<IPeopleTagAssociationRepository,PeopleTagAssociationRepository>();
+builder.Services.AddScoped<IPeopleTagAssociationService, PeopleTagAssociationService>();
+
+builder.Services.AddScoped<IPositionRepository,PositionRepository>();
+builder.Services.AddScoped<IPositionService,PositionService>();
 
 builder.Services.AddOpenApi();
 

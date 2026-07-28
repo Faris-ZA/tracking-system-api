@@ -1,4 +1,4 @@
-using WebApplication2.Constants;
+﻿using WebApplication2.Constants;
 using WebApplication2.DTOs.Zones;
 using WebApplication2.Exceptions;
 using WebApplication2.Models;
@@ -36,9 +36,7 @@ namespace WebApplication2.Services.Implementations
             if (zone == null)
             {
                 throw new NotFoundException(
-                    string.Format(
-                        ErrorMessages.NotFound,
-                        "Zone"));
+                    ErrorMessages.ZoneNotFound);
             }
 
             return MapToResponseDto(zone);
@@ -50,10 +48,10 @@ namespace WebApplication2.Services.Implementations
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
                 throw new BadRequestException(
-                    string.Format(
-                        ErrorMessages.Required,
-                        "Zone name"));
+                    ErrorMessages.ZoneNameRequired);
             }
+
+            ValidatePolygonPoints(dto.PolygonPoints);
 
             var floor =
                 await _floorRepository.GetByIdAsync(dto.FloorId);
@@ -61,9 +59,7 @@ namespace WebApplication2.Services.Implementations
             if (floor == null)
             {
                 throw new BadRequestException(
-                    string.Format(
-                        ErrorMessages.AssignedEntityNotFound,
-                        "floor"));
+                    ErrorMessages.AssignedFloorNotFound);
             }
 
             var name = dto.Name.Trim();
@@ -77,11 +73,7 @@ namespace WebApplication2.Services.Implementations
             if (duplicateExists)
             {
                 throw new ConflictException(
-                    string.Format(
-                        ErrorMessages.ActiveDuplicate,
-                        "zone",
-                        "name",
-                        " on the floor"));
+                    ErrorMessages.ZoneNameAlreadyExistsOnFloor);
             }
 
             var currentTime = DateTime.UtcNow;
@@ -94,6 +86,23 @@ namespace WebApplication2.Services.Implementations
                 CreateDate = currentTime,
                 LastUpdate = currentTime
             };
+
+            for (var index = 0;
+                index < dto.PolygonPoints.Count;
+                index++)
+            {
+                var pointDto = dto.PolygonPoints[index];
+
+                zone.PolygonPoints.Add(
+                    new ZonePolygonPoint
+                    {
+                        PointIndex = index,
+                        X = pointDto.X,
+                        Y = pointDto.Y,
+                        CreateDate = currentTime,
+                        LastUpdate = currentTime
+                    });
+            }
 
             await _zoneRepository.AddAsync(zone);
             await _zoneRepository.SaveChangesAsync();
@@ -110,18 +119,16 @@ namespace WebApplication2.Services.Implementations
             if (zone == null)
             {
                 throw new NotFoundException(
-                    string.Format(
-                        ErrorMessages.NotFound,
-                        "Zone"));
+                    ErrorMessages.ZoneNotFound);
             }
 
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
                 throw new BadRequestException(
-                    string.Format(
-                        ErrorMessages.Required,
-                        "Zone name"));
+                    ErrorMessages.ZoneNameRequired);
             }
+
+            ValidatePolygonPoints(dto.PolygonPoints);
 
             var name = dto.Name.Trim();
 
@@ -135,16 +142,19 @@ namespace WebApplication2.Services.Implementations
             if (duplicateExists)
             {
                 throw new ConflictException(
-                    string.Format(
-                        ErrorMessages.AnotherActiveDuplicate,
-                        "zone",
-                        "name",
-                        " on the floor"));
+                    ErrorMessages.AnotherZoneNameAlreadyExistsOnFloor);
             }
+
+            var currentTime = DateTime.UtcNow;
 
             zone.Name = name;
             zone.UpdateStatus = UpdateStatus.Updated;
             zone.LastUpdate = DateTime.UtcNow;
+
+            UpdatePolygonPoints(
+                zone,
+                dto.PolygonPoints,
+                currentTime);
 
             await _zoneRepository.SaveChangesAsync();
 
@@ -158,9 +168,7 @@ namespace WebApplication2.Services.Implementations
             if (zone == null)
             {
                 throw new NotFoundException(
-                    string.Format(
-                        ErrorMessages.NotFound,
-                        "Zone"));
+                    ErrorMessages.ZoneNotFound);
             }
 
             await _zoneRepository.RemovePolygonPointsAsync(id);
@@ -169,6 +177,80 @@ namespace WebApplication2.Services.Implementations
             zone.LastUpdate = DateTime.UtcNow;
 
             await _zoneRepository.SaveChangesAsync();
+        }
+
+        private static void ValidatePolygonPoints(
+            List<PolygonPointDto> polygonPoints)
+        {
+            if (polygonPoints.Count < 3)
+            {
+                throw new BadRequestException(
+                    ErrorMessages.PolygonRequiresThreePoints);
+            }
+
+            var containsDuplicates = polygonPoints
+                 .GroupBy(p => new
+                 {
+                     p.X,
+                     p.Y
+                 }).Any(g => g.Count() > 1);
+
+            if (containsDuplicates)
+            {
+                throw new BadRequestException(
+                    ErrorMessages.PolygonContainsDuplicateCoordinates);
+            }
+        }
+
+        private static void UpdatePolygonPoints(
+            Zone zone,
+            List<PolygonPointDto> polygonPoints,
+            DateTime currentTime)
+        {
+            var existingPoints = zone.PolygonPoints
+                .OrderBy(point => point.PointIndex)
+                .ToList();
+
+            for (var index = 0;
+                 index < polygonPoints.Count;
+                 index++)
+            {
+                var pointDto = polygonPoints[index];
+
+                var existingPoint = existingPoints
+                    .FirstOrDefault(point =>
+                        point.PointIndex == index);
+
+                if (existingPoint == null)
+                {
+                    zone.PolygonPoints.Add(
+                        new ZonePolygonPoint
+                        {
+                            ZoneId = zone.Id,
+                            PointIndex = index,
+                            X = pointDto.X,
+                            Y = pointDto.Y,
+                            CreateDate = currentTime,
+                            LastUpdate = currentTime
+                        });
+                }
+                else
+                {
+                    existingPoint.X = pointDto.X;
+                    existingPoint.Y = pointDto.Y;
+                    existingPoint.LastUpdate = currentTime;
+                }
+            }
+
+            var extraPoints = existingPoints
+                .Where(point =>
+                    point.PointIndex >= polygonPoints.Count)
+                .ToList();
+
+            foreach (var extraPoint in extraPoints)
+            {
+                zone.PolygonPoints.Remove(extraPoint);
+            }
         }
 
         private static ZoneResponseDto MapToResponseDto(
@@ -180,10 +262,26 @@ namespace WebApplication2.Services.Implementations
                 Name = zone.Name,
                 FloorId = zone.FloorId,
                 CreateDate = zone.CreateDate,
-                LastUpdate = zone.LastUpdate
+                LastUpdate = zone.LastUpdate,
+
+                PolygonPoints = zone.PolygonPoints
+                    .OrderBy(point => point.PointIndex)
+                    .Select(point =>
+                       new PolygonPointResponseDto
+                        {
+                            PointIndex = point.PointIndex,
+                            X = point.X,
+                            Y = point.Y
+                        })
+                    .ToList()
             };
         }
     }
 }
+
+
+
+
+
 
 

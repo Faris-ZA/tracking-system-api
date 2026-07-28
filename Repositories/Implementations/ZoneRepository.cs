@@ -17,6 +17,7 @@ namespace WebApplication2.Repositories.Implementations
         public async Task<List<Zone>> GetAllAsync()
         {
             return await _context.Zones
+                .Include(z =>z.PolygonPoints)
                 .Where(z => z.UpdateStatus != UpdateStatus.Deleted)
                 .ToListAsync();
         }
@@ -24,6 +25,7 @@ namespace WebApplication2.Repositories.Implementations
         public async Task<Zone?> GetByIdAsync(int id)
         {
             return await _context.Zones
+                .Include(z => z.PolygonPoints)
                 .FirstOrDefaultAsync(z =>
                     z.Id == id &&
                     z.UpdateStatus != UpdateStatus.Deleted);

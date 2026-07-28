@@ -1,9 +1,10 @@
-using WebApplication2.Constants;
+﻿using WebApplication2.Constants;
 using WebApplication2.DTOs.Tags;
 using WebApplication2.Exceptions;
 using WebApplication2.Models;
 using WebApplication2.Repositories.Interfaces;
 using WebApplication2.Services.Interfaces;
+using System.Text.RegularExpressions;
 
 namespace WebApplication2.Services.Implementations
 {
@@ -36,9 +37,7 @@ namespace WebApplication2.Services.Implementations
             if (tag == null)
             {
                 throw new NotFoundException(
-                    string.Format(
-                        ErrorMessages.NotFound,
-                        "Tag"));
+                    ErrorMessages.TagNotFound);
             }
 
             return MapToResponseDto(tag);
@@ -50,21 +49,18 @@ namespace WebApplication2.Services.Implementations
             if (string.IsNullOrWhiteSpace(dto.Label))
             {
                 throw new BadRequestException(
-                    string.Format(
-                        ErrorMessages.Required,
-                        "Tag label"));
+                    ErrorMessages.TagLabelRequired);
             }
 
             if (string.IsNullOrWhiteSpace(dto.Mac))
             {
                 throw new BadRequestException(
-                    string.Format(
-                        ErrorMessages.Required,
-                        "Tag MAC address"));
+                    ErrorMessages.TagMacAddressRequired);
             }
 
             var label = dto.Label.Trim();
             var mac = dto.Mac.Trim();
+            ValidateMacAddress(mac);
 
             var duplicateExists =
                 await _tagRepository
@@ -73,11 +69,7 @@ namespace WebApplication2.Services.Implementations
             if (duplicateExists)
             {
                 throw new ConflictException(
-                    string.Format(
-                        ErrorMessages.ActiveDuplicate,
-                        "tag",
-                        "MAC address",
-                        ""));
+                    ErrorMessages.TagMacAddressAlreadyExists);
             }
 
             var currentTime = DateTime.UtcNow;
@@ -107,17 +99,13 @@ namespace WebApplication2.Services.Implementations
             if (tag == null)
             {
                 throw new NotFoundException(
-                    string.Format(
-                        ErrorMessages.NotFound,
-                        "Tag"));
+                    ErrorMessages.TagNotFound);
             }
 
             if (string.IsNullOrWhiteSpace(dto.Label))
             {
                 throw new BadRequestException(
-                    string.Format(
-                        ErrorMessages.Required,
-                        "Tag label"));
+                    ErrorMessages.TagLabelRequired);
             }
 
             tag.Label = dto.Label.Trim();
@@ -138,9 +126,7 @@ namespace WebApplication2.Services.Implementations
             if (tag == null)
             {
                 throw new NotFoundException(
-                    string.Format(
-                        ErrorMessages.NotFound,
-                        "Tag"));
+                    ErrorMessages.TagNotFound);
             }
 
             var hasAssociation =
@@ -150,10 +136,7 @@ namespace WebApplication2.Services.Implementations
             if (hasAssociation)
             {
                 throw new ConflictException(
-                    string.Format(
-                        ErrorMessages.CannotDeleteBecauseAssociated, 
-                        "tag",
-                        "person"));
+                    ErrorMessages.TagAssociatedWithPerson);
             }
 
             tag.UpdateStatus =
@@ -163,19 +146,50 @@ namespace WebApplication2.Services.Implementations
             await _tagRepository.SaveChangesAsync();
         }
 
+        private static void ValidateMacAddress(string mac)
+        {
+            var isValid = Regex.IsMatch(
+                mac,
+                @"^(?:[0-9A-Fa-f]{2}([:-]))(?:[0-9A-Fa-f]{2}\1){4}[0-9A-Fa-f]{2}$|^[0-9A-Fa-f]{12}$|^(?:[0-9A-Fa-f]{4}\.){2}[0-9A-Fa-f]{4}$");
+
+            if (!isValid)
+            {
+                throw new BadRequestException(
+                    ErrorMessages.InvalidMacAddress);
+            }
+        }
+
         private static TagResponseDto MapToResponseDto(
             Tag tag)
         {
+            var activeAssociation = tag.PeopleAssociations
+                .FirstOrDefault(a => 
+                a.Person.UpdateStatus != UpdateStatus.Deleted);
+
             return new TagResponseDto
             {
                 Id = tag.Id,
                 Label = tag.Label,
                 Mac = tag.Mac,
                 CreateDate = tag.CreateDate,
-                LastUpdate = tag.LastUpdate
+                LastUpdate = tag.LastUpdate,
+
+                AssociatedPerson = activeAssociation == null 
+                ? null
+                :
+                new AssociatedPersonDto
+                {
+                    Id = activeAssociation.Person.Id,
+                    Name = activeAssociation.Person.Name
+                }
             };
         }
     }
 }
+
+
+
+
+
 
 
