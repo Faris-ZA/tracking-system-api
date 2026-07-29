@@ -1,4 +1,4 @@
-using WebApplication2.Constants;
+﻿using WebApplication2.Constants;
 using WebApplication2.DTOs.Floors;
 using WebApplication2.Exceptions;
 using WebApplication2.Models;
@@ -36,9 +36,7 @@ namespace WebApplication2.Services.Implementations
             if (floor == null)
             {
                 throw new NotFoundException(
-                    string.Format(
-                        ErrorMessages.NotFound,
-                        "Floor"));
+                    ErrorMessages.FloorNotFound);
             }
 
             return MapToResponseDto(floor);
@@ -50,9 +48,7 @@ namespace WebApplication2.Services.Implementations
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
                 throw new BadRequestException(
-                    string.Format(
-                        ErrorMessages.Required, 
-                        "Floor name"));
+                    ErrorMessages.FloorNameRequired);
             }
 
             var venue =
@@ -61,9 +57,7 @@ namespace WebApplication2.Services.Implementations
             if (venue == null)
             {
                 throw new BadRequestException(
-                    string.Format(
-                        ErrorMessages.AssignedEntityNotFound,
-                        "venue"));
+                    ErrorMessages.AssignedVenueNotFound);
             }
 
             var name = dto.Name.Trim();
@@ -77,11 +71,7 @@ namespace WebApplication2.Services.Implementations
             if (duplicateName)
             {
                 throw new ConflictException(
-                    string.Format(
-                        ErrorMessages.ActiveDuplicate, 
-                        "floor",
-                        "name", 
-                        " in the venue"));
+                    ErrorMessages.FloorNameAlreadyExistsInVenue);
             }
 
             var duplicateLevel =
@@ -93,11 +83,7 @@ namespace WebApplication2.Services.Implementations
             if (duplicateLevel)
             {
                 throw new ConflictException(
-                    string.Format(
-                        ErrorMessages.ActiveDuplicate, 
-                        "floor",
-                        "level",
-                        " in the venue"));
+                    ErrorMessages.FloorLevelAlreadyExistsInVenue);
             }
 
             var currentTime = DateTime.UtcNow;
@@ -127,17 +113,13 @@ namespace WebApplication2.Services.Implementations
             if (floor == null)
             {
                 throw new NotFoundException(
-                    string.Format(
-                        ErrorMessages.NotFound,
-                        "Floor"));
+                    ErrorMessages.FloorNotFound);
             }
 
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
                 throw new BadRequestException(
-                    string.Format(
-                        ErrorMessages.Required,
-                        "Floor name"));
+                    ErrorMessages.FloorNameRequired);
             }
 
             var name = dto.Name.Trim();
@@ -152,9 +134,7 @@ namespace WebApplication2.Services.Implementations
             if (duplicateName)
             {
                 throw new ConflictException(
-                    string.Format(
-                        ErrorMessages.AnotherActiveDuplicate,
-                        "floor", "name", " in the venue"));
+                    ErrorMessages.AnotherFloorNameAlreadyExistsInVenue);
             }
 
             var duplicateLevel =
@@ -167,9 +147,7 @@ namespace WebApplication2.Services.Implementations
             if (duplicateLevel)
             {
                 throw new ConflictException(
-                    string.Format(
-                        ErrorMessages.AnotherActiveDuplicate,
-                        "floor", "level", " in the venue"));
+                    ErrorMessages.AnotherFloorLevelAlreadyExistsInVenue);
             }
 
             floor.Name = name;
@@ -189,9 +167,7 @@ namespace WebApplication2.Services.Implementations
             if (floor == null)
             {
                 throw new NotFoundException(
-                    string.Format(
-                        ErrorMessages.NotFound, 
-                        "Floor"));
+                    ErrorMessages.FloorNotFound);
             }
 
             var hasActiveZones =
@@ -200,10 +176,7 @@ namespace WebApplication2.Services.Implementations
             if (hasActiveZones)
             {
                 throw new ConflictException(
-                    string.Format(
-                        ErrorMessages.CannotDeleteWithActiveChildren,
-                        "floor", 
-                        "zones"));
+                    ErrorMessages.FloorHasActiveZones);
             }
 
             floor.UpdateStatus = UpdateStatus.Deleted;
@@ -227,5 +200,13 @@ namespace WebApplication2.Services.Implementations
         }
     }
 }
+
+
+
+
+
+
+
+
 
 

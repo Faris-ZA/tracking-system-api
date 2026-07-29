@@ -9,5 +9,9 @@ namespace WebApplication2.DTOs.Zones
 
         [Required]
         public int FloorId { get; set; }
+
+        [Required]
+        public List<PolygonPointDto> PolygonPoints { get; set; }
+            = new List<PolygonPointDto>();
     }
 }

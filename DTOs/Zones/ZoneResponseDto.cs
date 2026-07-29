@@ -11,5 +11,8 @@ namespace WebApplication2.DTOs.Zones
         public DateTime CreateDate { get; set; }
 
         public DateTime LastUpdate { get; set; }
+
+        public List<PolygonPointResponseDto> PolygonPoints { get; set; } 
+           = new List<PolygonPointResponseDto>();
     }
 }

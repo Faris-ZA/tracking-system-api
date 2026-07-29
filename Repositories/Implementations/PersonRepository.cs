@@ -17,6 +17,8 @@ namespace WebApplication2.Repositories.Implementations
         public async Task<List<Person>> GetAllAsync()
         {
             return await _context.People
+                .Include(p => p.TagAssociations)
+                .ThenInclude(a => a.Tag)
                 .Where(p => p.UpdateStatus != UpdateStatus.Deleted)
                 .ToListAsync();
         }
@@ -24,6 +26,8 @@ namespace WebApplication2.Repositories.Implementations
         public async Task<Person?> GetByIdAsync(int id)
         {
             return await _context.People
+                .Include(p => p.TagAssociations)
+                .ThenInclude(a => a.Tag)
                 .FirstOrDefaultAsync(p =>
                     p.Id == id &&
                     p.UpdateStatus != UpdateStatus.Deleted);

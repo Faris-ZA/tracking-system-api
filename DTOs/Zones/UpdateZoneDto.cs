@@ -6,5 +6,9 @@ namespace WebApplication2.DTOs.Zones
     {
         [Required]
         public string Name { get; set; } = string.Empty;
+
+        [Required]
+        public List<PolygonPointDto> PolygonPoints { get; set; }
+            = new List<PolygonPointDto>();
     }
 }

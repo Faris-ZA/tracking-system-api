@@ -11,5 +11,7 @@ namespace WebApplication2.DTOs.Tags
         public DateTime CreateDate { get; set; }
 
         public DateTime LastUpdate { get; set; }
+
+        public AssociatedPersonDto? AssociatedPerson { get; set; }
     }
 }

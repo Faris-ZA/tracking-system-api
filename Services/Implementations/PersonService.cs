@@ -1,9 +1,10 @@
-using WebApplication2.Constants;
+﻿using WebApplication2.Constants;
 using WebApplication2.DTOs.People;
 using WebApplication2.Exceptions;
 using WebApplication2.Models;
 using WebApplication2.Repositories.Interfaces;
 using WebApplication2.Services.Interfaces;
+using System.Text.RegularExpressions;
 
 namespace WebApplication2.Services.Implementations
 {
@@ -36,9 +37,7 @@ namespace WebApplication2.Services.Implementations
             if (person == null)
             {
                 throw new NotFoundException(
-                    string.Format(
-                        ErrorMessages.NotFound, 
-                        "Person"));
+                    ErrorMessages.PersonNotFound);
             }
 
             return MapToResponseDto(person);
@@ -50,21 +49,19 @@ namespace WebApplication2.Services.Implementations
             if (string.IsNullOrWhiteSpace(dto.Name))
             {
                 throw new BadRequestException(
-                    string.Format(
-                        ErrorMessages.Required,
-                        "Person name"));
+                    ErrorMessages.PersonNameRequired);
             }
 
             if (string.IsNullOrWhiteSpace(dto.Phone))
             {
                 throw new BadRequestException(
-                    string.Format(
-                        ErrorMessages.Required,
-                        "Phone number"));
+                    ErrorMessages.PhoneNumberRequired);
             }
 
             var name = dto.Name.Trim();
             var phone = dto.Phone.Trim();
+
+            ValidatePhoneNumber(phone);
 
             var duplicateExists =
                 await _personRepository
@@ -73,11 +70,7 @@ namespace WebApplication2.Services.Implementations
             if (duplicateExists)
             {
                 throw new ConflictException(
-                    string.Format(
-                        ErrorMessages.ActiveDuplicate, 
-                        "person",
-                        "name",
-                        ""));
+                    ErrorMessages.PersonNameAlreadyExists);
             }
 
             var currentTime = DateTime.UtcNow;
@@ -107,20 +100,21 @@ namespace WebApplication2.Services.Implementations
             if (person == null)
             {
                 throw new NotFoundException(
-                    string.Format(
-                        ErrorMessages.NotFound,
-                        "Person"));
+                    ErrorMessages.PersonNotFound);
             }
 
             if (string.IsNullOrWhiteSpace(dto.Phone))
             {
                 throw new BadRequestException(
-                    string.Format(
-                        ErrorMessages.Required,
-                        "Phone number"));
+                    ErrorMessages.PhoneNumberRequired);
             }
 
-            person.Phone = dto.Phone.Trim();
+            var phone = dto.Phone.Trim();
+
+            ValidatePhoneNumber(phone);
+
+            person.Phone = phone;
+
             person.UpdateStatus =
                 UpdateStatus.Updated;
             person.LastUpdate = DateTime.UtcNow;
@@ -138,9 +132,7 @@ namespace WebApplication2.Services.Implementations
             if (person == null)
             {
                 throw new NotFoundException(
-                    string.Format(
-                        ErrorMessages.NotFound,
-                        "Person"));
+                    ErrorMessages.PersonNotFound);
             }
 
             var hasAssociation =
@@ -150,10 +142,7 @@ namespace WebApplication2.Services.Implementations
             if (hasAssociation)
             {
                 throw new ConflictException(
-                    string.Format(
-                        ErrorMessages.CannotDeleteBecauseAssociated,
-                        "person",
-                        "tag"));
+                    ErrorMessages.PersonAssociatedWithTag);
             }
 
             person.UpdateStatus =
@@ -162,20 +151,48 @@ namespace WebApplication2.Services.Implementations
 
             await _personRepository.SaveChangesAsync();
         }
+        private static void ValidatePhoneNumber(string phone)
+        {
+            var isValid =
+                Regex.IsMatch(phone, @"^\+?\d+$");
+
+            if (!isValid)
+            {
+                throw new BadRequestException(
+                    ErrorMessages.InvalidPhoneNumber);
+            }
+        }
 
         private static PersonResponseDto MapToResponseDto(
             Person person)
         {
+            var activeAssociation = person.TagAssociations
+                .FirstOrDefault(a =>
+                a.Tag.UpdateStatus != UpdateStatus.Deleted);
+
             return new PersonResponseDto
             {
                 Id = person.Id,
                 Name = person.Name,
                 Phone = person.Phone,
                 CreateDate = person.CreateDate,
-                LastUpdate = person.LastUpdate
+                LastUpdate = person.LastUpdate,
+
+                AssociatedTag = activeAssociation == null 
+                ? null
+                : new AssociatedTagDto
+                {
+                    Id = activeAssociation.Tag.Id,
+                    Mac = activeAssociation.Tag.Mac 
+                }
             };
         }
     }
 }
+
+
+
+
+
 
 
