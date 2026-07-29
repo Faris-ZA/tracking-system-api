@@ -42,6 +42,16 @@ namespace WebApplication2.Services.Implementations
                     ErrorMessages.PersonNotFound);
             }
 
+            var personHasAssociation =
+               await _personRepository
+                   .HasTagAssociationAsync(dto.PersonId);
+
+            if (personHasAssociation)
+            {
+                throw new ConflictException(
+                    ErrorMessages.PersonAlreadyAssociated);
+            }
+
             var tag =
                 await _tagRepository.GetByIdAsync(dto.TagId);
 
@@ -49,16 +59,6 @@ namespace WebApplication2.Services.Implementations
             {
                 throw new NotFoundException(
                     ErrorMessages.TagNotFound);
-            }
-
-            var personHasAssociation =
-                await _personRepository
-                    .HasTagAssociationAsync(dto.PersonId);
-
-            if (personHasAssociation)
-            {
-                throw new ConflictException(
-                    ErrorMessages.PersonAlreadyAssociated);
             }
 
             var tagHasAssociation =
@@ -90,7 +90,7 @@ namespace WebApplication2.Services.Implementations
         }
         public async Task DeleteAsync(
             int personId,
-            int tagId)
+    int tagId)
         {
             var person =
                 await _personRepository.GetByIdAsync(personId);
@@ -101,6 +101,17 @@ namespace WebApplication2.Services.Implementations
                     ErrorMessages.PersonNotFound);
             }
 
+            var association =
+                await _associationRepository
+                    .GetByPersonIdAsync(personId);
+
+            if (association == null ||
+                association.TagId != tagId)
+            {
+                throw new NotFoundException(
+                    ErrorMessages.AssociationNotFound);
+            }
+
             var tag =
                 await _tagRepository.GetByIdAsync(tagId);
 
@@ -108,17 +119,6 @@ namespace WebApplication2.Services.Implementations
             {
                 throw new NotFoundException(
                     ErrorMessages.TagNotFound);
-            }
-
-            var association =
-                await _associationRepository.GetAsync(
-                    personId,
-                    tagId);
-
-            if (association == null)
-            {
-                throw new NotFoundException(
-                    ErrorMessages.AssociationNotFound);
             }
 
             _associationRepository.Remove(association);

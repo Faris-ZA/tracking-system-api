@@ -4,9 +4,9 @@ namespace WebApplication2.Repositories.Interfaces
 {
     public interface IPeopleTagAssociationRepository
     {
-        Task<PeopleTagAssociation> GetAsync(
-            int persionId,
-            int tagId);
+        Task<PeopleTagAssociation?> GetByPersonIdAsync(
+            int personId);
+
         Task AddAsync(
             PeopleTagAssociation association);
 

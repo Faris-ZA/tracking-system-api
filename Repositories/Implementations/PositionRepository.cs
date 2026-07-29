@@ -36,6 +36,11 @@ namespace WebApplication2.Repositories.Implementations
                 .AddAsync(positionHistory);
         }
 
+        public void RemoveLastPosition(LastPosition lastPosition)
+        {
+            _context.LastPositions.Remove(lastPosition);
+        }
+
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();

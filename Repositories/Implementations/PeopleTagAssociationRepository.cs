@@ -16,14 +16,12 @@ namespace WebApplication2.Repositories.Implementations
             _context = context;
         }
 
-        public async Task<PeopleTagAssociation?> GetAsync(
-            int personId,
-            int tagId)
+        public async Task<PeopleTagAssociation?> GetByPersonIdAsync(
+            int personId)
         {
             return await _context.PeopleTagAssociations
                 .FirstOrDefaultAsync(a =>
-                    a.PeopleId == personId &&
-                    a.TagId == tagId);
+                    a.PeopleId == personId);
         }
 
         public async Task AddAsync(

@@ -13,6 +13,9 @@ namespace WebApplication2.Repositories.Interfaces
         Task AddPositionHistoryAsync(
             PositionHistory positionHistory);
 
+        void RemoveLastPosition(
+            LastPosition lastPosition);
+
         Task SaveChangesAsync();
     }
 }

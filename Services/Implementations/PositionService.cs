@@ -83,36 +83,32 @@ namespace WebApplication2.Services.Implementations
 
             var currentTime = DateTime.UtcNow;
 
-            var lastPosition =
+            var existingLastPosition =
                 await _positionRepository
                     .GetLastPositionByPersonIdAsync(dto.PersonId);
 
-            if (lastPosition == null)
+            if (existingLastPosition != null)
             {
-                lastPosition = new LastPosition
-                {
-                    PeopleId = dto.PersonId,
-                    VenueId = dto.VenueId,
-                    FloorId = dto.FloorId,
-                    ZoneId = dto.ZoneId,
-                    X = dto.X,
-                    Y = dto.Y,
-                    CreateDate = currentTime,
-                    LastUpdate = currentTime
-                };
+                _positionRepository.RemoveLastPosition(
+                    existingLastPosition);
 
-                await _positionRepository
-                    .AddLastPositionAsync(lastPosition);
+                await _positionRepository.SaveChangesAsync();
             }
-            else
+
+            var lastPosition = new LastPosition
             {
-                lastPosition.VenueId = dto.VenueId;
-                lastPosition.FloorId = dto.FloorId;
-                lastPosition.ZoneId = dto.ZoneId;
-                lastPosition.X = dto.X;
-                lastPosition.Y = dto.Y;
-                lastPosition.LastUpdate = currentTime;
-            }
+                PeopleId = dto.PersonId,
+                VenueId = dto.VenueId,
+                FloorId = dto.FloorId,
+                ZoneId = dto.ZoneId,
+                X = dto.X,
+                Y = dto.Y,
+                CreateDate = currentTime,
+                LastUpdate = currentTime
+            };
+
+            await _positionRepository
+                .AddLastPositionAsync(lastPosition);
 
             var history = new PositionHistory
             {
