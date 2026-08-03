@@ -115,5 +115,20 @@
 
         public const string ZoneDoesNotBelongToFloor =
             "The zone does not belong to the selected floor.";
+
+        public const string ImportFileRequired =
+    "       An import file is required.";
+
+        public const string ImportFileEmpty =
+            "The import file is empty.";
+
+        public const string ImportFileTooLarge =
+            "The import file exceeds the maximum allowed size.";
+
+        public const string UnsupportedImportFileType =
+            "Only CSV and Excel files are supported.";
+
+        public const string InvalidImportHeaders =
+            "The import file must contain Name and Phone columns.";
     }
 }

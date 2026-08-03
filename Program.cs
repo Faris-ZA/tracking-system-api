@@ -1,12 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql.NameTranslation;
+using WebApplication2.BackgroundServices;
+using WebApplication2.Configuration;
 using WebApplication2.Data;
+using WebApplication2.Middleware;
 using WebApplication2.Models;
 using WebApplication2.Repositories.Implementations;
 using WebApplication2.Repositories.Interfaces;
 using WebApplication2.Services.Implementations;
+using WebApplication2.Services.ImportParsers.Implementations;
+using WebApplication2.Services.ImportParsers.Interfaces;
 using WebApplication2.Services.Interfaces;
-using WebApplication2.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,11 +53,37 @@ builder.Services.AddScoped<IPersonService, PersonService>();
 builder.Services.AddScoped<ITagRepository, TagRepository>();
 builder.Services.AddScoped<ITagService, TagService>();
 
-builder.Services.AddScoped<IPeopleTagAssociationRepository,PeopleTagAssociationRepository>();
+builder.Services.AddScoped<IPeopleLocationReportRepository,PeopleLocationReportRepository>();
+
+builder.Services.AddScoped<IPeopleTagAssociationRepository, PeopleTagAssociationRepository>();
 builder.Services.AddScoped<IPeopleTagAssociationService, PeopleTagAssociationService>();
 
-builder.Services.AddScoped<IPositionRepository,PositionRepository>();
-builder.Services.AddScoped<IPositionService,PositionService>();
+builder.Services.AddScoped<IPositionRepository, PositionRepository>();
+builder.Services.AddScoped<IPositionService, PositionService>();
+
+builder.Services.AddScoped<IPeopleLocationReportService, PeopleLocationReportService>();
+
+builder.Services.AddScoped<ICsvExportService, CsvExportService>();
+
+builder.Services.AddScoped< IPeopleLocationExportService, PeopleLocationExportService>();
+
+builder.Services.AddScoped<IEmailService, EmailService>();
+
+builder.Services.AddScoped<ICsvPeopleImportParser, CsvPeopleImportParser>();
+
+builder.Services.AddScoped<IExcelPeopleImportParser, ExcelPeopleImportParser>();
+
+builder.Services.AddScoped<IPeopleImportService, PeopleImportService>();
+
+builder.Services.Configure<BackgroundJobSettings>(
+    builder.Configuration.GetSection(
+        "BackgroundJobSettings"));
+
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection(
+        "EmailSettings"));
+
+builder.Services.AddHostedService<OfflinePeopleReportHostedService>();
 
 builder.Services.AddOpenApi();
 
