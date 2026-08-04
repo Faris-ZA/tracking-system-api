@@ -1,14 +1,16 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Npgsql.NameTranslation;
 using WebApplication2.BackgroundServices;
 using WebApplication2.Configuration;
 using WebApplication2.Data;
+using WebApplication2.Infrastructure.Email;
+using WebApplication2.Infrastructure.Export;
+using WebApplication2.Infrastructure.Import;
 using WebApplication2.Middleware;
 using WebApplication2.Models;
 using WebApplication2.Repositories.Implementations;
 using WebApplication2.Repositories.Interfaces;
 using WebApplication2.Services.Implementations;
-using WebApplication2.Services.ImportParsers.Implementations;
 using WebApplication2.Services.ImportParsers.Interfaces;
 using WebApplication2.Services.Interfaces;
 
@@ -73,6 +75,9 @@ builder.Services.AddScoped<ICsvPeopleImportParser, CsvPeopleImportParser>();
 
 builder.Services.AddScoped<IExcelPeopleImportParser, ExcelPeopleImportParser>();
 
+builder.Services.AddScoped<
+    IPeopleImportFileReader,
+    PeopleImportFileReader>();
 builder.Services.AddScoped<IPeopleImportService, PeopleImportService>();
 
 builder.Services.Configure<BackgroundJobSettings>(
@@ -112,3 +117,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+
+

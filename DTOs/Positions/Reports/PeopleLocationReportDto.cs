@@ -12,7 +12,11 @@
 
         public string? ZoneName { get; set; }
 
-        public string Status { get; set; } = string.Empty;
+        public int? X { get; set; }
+
+        public int? Y { get; set; }
+
+        public bool IsLive { get; set; }
 
         public DateTime? LastSeen { get; set; }
 

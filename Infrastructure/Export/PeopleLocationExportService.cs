@@ -1,7 +1,7 @@
-using WebApplication2.DTOs.Reports;
+﻿using WebApplication2.DTOs.Reports;
 using WebApplication2.Services.Interfaces;
 
-namespace WebApplication2.Services.Implementations
+namespace WebApplication2.Infrastructure.Export
 {
     public class PeopleLocationExportService
         : IPeopleLocationExportService

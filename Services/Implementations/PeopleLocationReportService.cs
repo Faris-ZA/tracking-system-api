@@ -31,11 +31,9 @@ namespace WebApplication2.Services.Implementations
 
             foreach (var person in reportData)
             {
-                person.Status =
+                person.IsLive =
                     person.LastSeen.HasValue &&
-                    person.LastSeen.Value >= liveThreshold
-                        ? "Live"
-                        : "Offline";
+                    person.LastSeen.Value >= liveThreshold;
             }
 
             return reportData;
@@ -49,7 +47,7 @@ namespace WebApplication2.Services.Implementations
 
             return reportData
                 .Where(person =>
-                    person.Status == "Offline")
+                    person.IsLive)
                 .ToList();
         }
     }

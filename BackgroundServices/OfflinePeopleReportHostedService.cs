@@ -8,6 +8,8 @@ namespace WebApplication2.BackgroundServices
     public class OfflinePeopleReportHostedService
         : BackgroundService
     {
+        private const int DefaultIntervalMinutes = 60;
+
         private readonly IServiceScopeFactory _scopeFactory;
 
         private readonly ILogger<OfflinePeopleReportHostedService>
@@ -23,10 +25,10 @@ namespace WebApplication2.BackgroundServices
             _scopeFactory = scopeFactory;
             _logger = logger;
 
-            var intervalMinutes =
-                options.Value.IntervalMinutes > 0
-                    ? options.Value.IntervalMinutes
-                    : 60;
+         var intervalMinutes =
+            options.Value.IntervalMinutes > 0
+               ? options.Value.IntervalMinutes
+               : DefaultIntervalMinutes;
 
             _interval =
                 TimeSpan.FromMinutes(intervalMinutes);
@@ -96,6 +98,14 @@ namespace WebApplication2.BackgroundServices
             var offlinePeople =
                 await reportService
                     .GetOfflinePeopleReportAsync();
+
+            if (offlinePeople.Count == 0)
+            {
+                _logger.LogInformation(
+                    "No offline people found for the scheduled report.");
+
+                return;
+            }
 
             var filePath =
                 await csvExportService

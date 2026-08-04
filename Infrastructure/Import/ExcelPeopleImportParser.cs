@@ -1,10 +1,10 @@
-using ClosedXML.Excel;
+﻿using ClosedXML.Excel;
 using WebApplication2.Constants;
 using WebApplication2.DTOs.Imports;
 using WebApplication2.Exceptions;
 using WebApplication2.Services.ImportParsers.Interfaces;
 
-namespace WebApplication2.Services.ImportParsers.Implementations
+namespace WebApplication2.Infrastructure.Import
 {
     public class ExcelPeopleImportParser
         : IExcelPeopleImportParser

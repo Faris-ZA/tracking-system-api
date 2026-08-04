@@ -20,70 +20,52 @@ namespace WebApplication2.Repositories.Implementations
         public async Task<List<PeopleLocationReportDto>>
             GetPeopleLocationDataAsync()
         {
+            var activePeople =
+                _context.People
+                    .AsNoTracking()
+                    .Where(person =>
+                        person.UpdateStatus != UpdateStatus.Deleted);
+
             var reportData =
                 await (
-                    from person in _context.People
-                        .AsNoTracking()
+                    from person in activePeople
 
-                    where person.UpdateStatus
-                        != UpdateStatus.Deleted
-
-                    join lastPosition in _context.LastPositions
-                            .AsNoTracking()
+                    join lastPosition in
+                        _context.LastPositions.AsNoTracking()
                         on person.Id equals lastPosition.PeopleId
                         into lastPositionGroup
 
-                    from lastPosition
-                        in lastPositionGroup.DefaultIfEmpty()
-
-                    join venue in _context.Venues
-                            .AsNoTracking()
-                        on lastPosition!.VenueId equals venue.Id
-                        into venueGroup
-
-                    from venue
-                        in venueGroup.DefaultIfEmpty()
-
-                    join floor in _context.Floors
-                            .AsNoTracking()
-                        on lastPosition!.FloorId equals floor.Id
-                        into floorGroup
-
-                    from floor
-                        in floorGroup.DefaultIfEmpty()
-
-                    join zone in _context.Zones
-                            .AsNoTracking()
-                        on lastPosition!.ZoneId equals zone.Id
-                        into zoneGroup
-
-                    from zone
-                        in zoneGroup.DefaultIfEmpty()
+                    from lastPosition in
+                        lastPositionGroup.DefaultIfEmpty()
 
                     select new PeopleLocationReportDto
                     {
                         PersonId = person.Id,
                         PersonName = person.Name,
 
-                        VenueName =
-                            venue != null
-                                ? venue.Name
-                                : null,
+                        VenueName = lastPosition != null
+                            ? lastPosition.Venue.Name
+                            : null,
 
-                        FloorName =
-                            floor != null
-                                ? floor.Name
-                                : null,
+                        FloorName = lastPosition != null
+                            ? lastPosition.Floor.Name
+                            : null,
 
-                        ZoneName =
-                            zone != null
-                                ? zone.Name
-                                : null,
+                        ZoneName = lastPosition != null
+                            ? lastPosition.Zone.Name
+                            : null,
 
-                        LastSeen =
-                            lastPosition != null
-                                ? lastPosition.LastUpdate
-                                : null
+                        X = lastPosition != null
+                            ? lastPosition.X
+                            : null,
+
+                        Y = lastPosition != null
+                            ? lastPosition.Y
+                            : null,
+
+                        LastSeen = lastPosition != null
+                            ? lastPosition.LastUpdate
+                            : null
                     })
                     .ToListAsync();
 

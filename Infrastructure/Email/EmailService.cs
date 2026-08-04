@@ -1,3 +1,4 @@
+﻿using WebApplication2.Constants;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Options;
@@ -5,7 +6,7 @@ using MimeKit;
 using WebApplication2.Configuration;
 using WebApplication2.Services.Interfaces;
 
-namespace WebApplication2.Services.Implementations
+namespace WebApplication2.Infrastructure.Email
 {
     public class EmailService : IEmailService
     {
@@ -30,7 +31,7 @@ namespace WebApplication2.Services.Implementations
             if (!File.Exists(reportFilePath))
             {
                 throw new FileNotFoundException(
-                    "The report file was not found.",
+                    EmailMessages.ReportFileNotFound,
                     reportFilePath);
             }
 
@@ -47,17 +48,13 @@ namespace WebApplication2.Services.Implementations
                         _settings.RecipientEmail));
 
                 message.Subject =
-                    "Offline People Report";
+                    EmailConstants.OfflineReportSubject;
 
                 var bodyBuilder = new BodyBuilder
                 {
-                    TextBody =
-                        "The scheduled offline people report " +
-                        "was generated successfully." +
-                        Environment.NewLine +
-                        $"Offline people count: {offlinePeopleCount}." +
-                        Environment.NewLine +
-                        "The CSV report is attached."
+                    TextBody = string.Format(
+                        EmailConstants.OfflineReportBodyTemplate,
+                        offlinePeopleCount)
                 };
 
                 await bodyBuilder.Attachments.AddAsync(
@@ -112,42 +109,44 @@ namespace WebApplication2.Services.Implementations
                     _settings.SmtpHost))
             {
                 throw new InvalidOperationException(
-                    "SMTP host is not configured.");
+                    EmailMessages.SmtpHostNotConfigured);
             }
 
             if (_settings.SmtpPort <= 0)
             {
                 throw new InvalidOperationException(
-                    "SMTP port is invalid.");
+                    EmailMessages.InvalidSmtpPort);
             }
 
             if (string.IsNullOrWhiteSpace(
                     _settings.Username))
             {
                 throw new InvalidOperationException(
-                    "SMTP username is not configured.");
+                    EmailMessages.SmtpUsernameNotConfigured);
             }
 
             if (string.IsNullOrWhiteSpace(
                     _settings.Password))
             {
                 throw new InvalidOperationException(
-                    "SMTP password is not configured.");
+                    EmailMessages.SmtpPasswordNotConfigured);
             }
 
             if (string.IsNullOrWhiteSpace(
                     _settings.FromEmail))
             {
                 throw new InvalidOperationException(
-                    "Sender email is not configured.");
+                    EmailMessages.SenderEmailNotConfigured);
             }
 
             if (string.IsNullOrWhiteSpace(
                     _settings.RecipientEmail))
             {
                 throw new InvalidOperationException(
-                    "Recipient email is not configured.");
+                    EmailMessages.RecipientEmailNotConfigured);
             }
         }
     }
 }
+
+

@@ -1,11 +1,20 @@
-using System.Text;
+﻿using System.Text;
 using WebApplication2.DTOs.Reports;
 using WebApplication2.Services.Interfaces;
 
-namespace WebApplication2.Services.Implementations
+namespace WebApplication2.Infrastructure.Export
 {
     public class CsvExportService : ICsvExportService
     {
+        private const string ReportsFolderName =
+            "GeneratedFiles/PeopleLocationReports";
+
+        private const string ReportFileNamePrefix =
+            "people-location-report-";
+
+        private const string CsvHeader =
+            "PersonId,PersonName,VenueName,FloorName,ZoneName,X,Y,Status,LastSeen";
+
         private readonly IHostEnvironment _environment;
         private readonly ILogger<CsvExportService> _logger;
 
@@ -24,13 +33,12 @@ namespace WebApplication2.Services.Implementations
             {
                 var reportsFolder = Path.Combine(
                     _environment.ContentRootPath,
-                    "GeneratedFiles",
-                    "PeopleLocationReports");
+                    ReportsFolderName);
 
                 Directory.CreateDirectory(reportsFolder);
 
                 var fileName =
-                    $"people-location-report-" +
+                    $"{ReportFileNamePrefix}" +
                     $"{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv";
 
                 var filePath = Path.Combine(
@@ -39,9 +47,7 @@ namespace WebApplication2.Services.Implementations
 
                 var csvContent = new StringBuilder();
 
-                csvContent.AppendLine(
-                    "PersonId,PersonName,VenueName," +
-                    "FloorName,ZoneName,Status,LastSeen");
+                csvContent.AppendLine(CsvHeader);
 
                 foreach (var person in reportData)
                 {
@@ -56,7 +62,9 @@ namespace WebApplication2.Services.Implementations
                         $"{EscapeCsvValue(person.VenueName)}," +
                         $"{EscapeCsvValue(person.FloorName)}," +
                         $"{EscapeCsvValue(person.ZoneName)}," +
-                        $"{EscapeCsvValue(person.Status)}," +
+                        $"{person.X}," +
+                        $"{person.Y}," +
+                        $"{(person.IsLive ? "Live" : "Offline")}," +
                         $"{EscapeCsvValue(lastSeen)}");
                 }
 
