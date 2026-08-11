@@ -89,21 +89,9 @@ using WebApplication2.Services.Caching.Interfaces;
             };
 
             await _personRepository.AddAsync(person);
-        await _personRepository.SaveChangesAsync();
+            await _personRepository.SaveChangesAsync();
 
-        var response = MapToResponseDto(person);
-
-        try
-        {
-            await _peopleCacheService.SetAsync(response);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Person was created in database, but Redis update failed. {ex.Message}");
-        }
-
-        return response;
+            return MapToResponseDto(person);
         }
 
         public async Task<PersonResponseDto> UpdateAsync(
@@ -137,19 +125,7 @@ using WebApplication2.Services.Caching.Interfaces;
 
             await _personRepository.SaveChangesAsync();
 
-        var response = MapToResponseDto(person);
-
-        try
-        {
-            await _peopleCacheService.SetAsync(response);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Person was updated in database, but Redis update failed. {ex.Message}");
-        }
-
-        return response;
+            return MapToResponseDto(person);
         }
 
         public async Task DeleteAsync(int id)
@@ -178,19 +154,9 @@ using WebApplication2.Services.Caching.Interfaces;
             person.LastUpdate = DateTime.UtcNow;
 
             await _personRepository.SaveChangesAsync();
-
-        try
-        {
-            await _peopleCacheService.RemoveAsync(id);
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Person was deleted in database, but Redis removal failed. {ex.Message}");
-        }
-    }
 
-    public async Task<PerformancePageResponseDto<PersonResponseDto>>
+        public async Task<PerformancePageResponseDto<PersonResponseDto>>
         GetDatabasePerformanceAsync(
         PeoplePerformanceQueryDto queryDto)
         {
@@ -536,7 +502,6 @@ using WebApplication2.Services.Caching.Interfaces;
             }
         }
     }
-
 
 
 

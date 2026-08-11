@@ -126,10 +126,7 @@ namespace WebApplication2.Services.Implementations
                     ErrorMessages.TagLabelRequired);
             }
 
-            var oldLabel = tag.Label;
-
             tag.Label = dto.Label.Trim();
-
             tag.UpdateStatus =
                 UpdateStatus.Updated;
             tag.LastUpdate = DateTime.UtcNow;
@@ -140,7 +137,7 @@ namespace WebApplication2.Services.Implementations
 
         try
         {
-            await _tagCacheService.UpdateLabelAsync(response, oldLabel);
+            await _tagCacheService.SetAsync(response);
         }
         catch (Exception ex)
         {

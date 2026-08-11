@@ -1,3 +1,4 @@
+using WebApplication2.DTOs.Performance;
 using WebApplication2.Models;
 
 namespace WebApplication2.Repositories.Interfaces
@@ -13,6 +14,13 @@ namespace WebApplication2.Repositories.Interfaces
         Task<bool> HasPeopleAssociationAsync(int tagId);
 
         Task AddAsync(Tag tag);
+
+        Task<DatabasePageResultDto<Tag>>
+            GetPerformancePageAsync(
+                TagPerformanceQueryDto queryDto);
+        Task<List<Tag>> GetBatchAsync(
+            int skip,
+            int take);
 
         Task SaveChangesAsync();
     }

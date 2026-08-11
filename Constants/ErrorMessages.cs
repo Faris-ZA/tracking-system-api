@@ -130,5 +130,14 @@
 
         public const string InvalidImportHeaders =
             "The import file must contain Name and Phone columns.";
-    }
+    
+        public const string InvalidPageNumber =
+            "Page number must be greater than zero.";
+
+        public const string InvalidPageSize =
+            "Page size must be between 1 and 500.";
+
+        public const string InvalidAssignmentStatus =
+            "Assignment status must be assigned or unassigned.";
+}
 }

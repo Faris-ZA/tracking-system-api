@@ -1,4 +1,4 @@
-﻿using WebApplication2.Services.Caching.Interfaces;
+using WebApplication2.Services.Caching.Interfaces;
 using WebApplication2.Constants;
 using WebApplication2.DTOs.Tags;
 using WebApplication2.Exceptions;
@@ -90,21 +90,9 @@ namespace WebApplication2.Services.Implementations
             };
 
             await _tagRepository.AddAsync(tag);
-        await _tagRepository.SaveChangesAsync();
+            await _tagRepository.SaveChangesAsync();
 
-        var response = MapToResponseDto(tag);
-
-        try
-        {
-            await _tagCacheService.SetAsync(response);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Tag was created in database, but Redis update failed. {ex.Message}");
-        }
-
-        return response;
+            return MapToResponseDto(tag);
         }
 
         public async Task<TagResponseDto> UpdateAsync(
@@ -126,29 +114,14 @@ namespace WebApplication2.Services.Implementations
                     ErrorMessages.TagLabelRequired);
             }
 
-            var oldLabel = tag.Label;
-
             tag.Label = dto.Label.Trim();
-
             tag.UpdateStatus =
                 UpdateStatus.Updated;
             tag.LastUpdate = DateTime.UtcNow;
 
             await _tagRepository.SaveChangesAsync();
 
-        var response = MapToResponseDto(tag);
-
-        try
-        {
-            await _tagCacheService.UpdateLabelAsync(response, oldLabel);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Tag was updated in database, but Redis update failed. {ex.Message}");
-        }
-
-        return response;
+            return MapToResponseDto(tag);
         }
 
         public async Task<PerformancePageResponseDto<TagResponseDto>>
@@ -210,19 +183,9 @@ namespace WebApplication2.Services.Implementations
             tag.LastUpdate = DateTime.UtcNow;
 
             await _tagRepository.SaveChangesAsync();
-
-        try
-        {
-            await _tagCacheService.RemoveAsync(id);
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Tag was deleted in database, but Redis removal failed. {ex.Message}");
-        }
-    }
 
-    private static void ValidateMacAddress(string mac)
+        private static void ValidateMacAddress(string mac)
         {
             var isValid = Regex.IsMatch(
                 mac,
@@ -237,64 +200,8 @@ namespace WebApplication2.Services.Implementations
 
         
         public async Task<PerformancePageResponseDto<TagResponseDto>>
-        GetRedisPerformanceAsync(
-            TagPerformanceQueryDto queryDto)
-    {
-        try
-        {
-            var result =
-                await GetRedisPerformanceCoreAsync(queryDto);
-
-            var skippedRecords =
-                (queryDto.PageNumber - 1)
-                * queryDto.PageSize;
-
-            var remainingRecords =
-                Math.Max(
-                    0,
-                    result.TotalRecords - skippedRecords);
-
-            var expectedRecords =
-                Math.Min(
-                    queryDto.PageSize,
-                    remainingRecords);
-
-            var cacheLooksIncomplete =
-                result.TotalRecords == 0
-                || result.ReturnedRecords < expectedRecords;
-
-            if (cacheLooksIncomplete)
-            {
-                Console.WriteLine(
-                    "Tag Redis cache is missing or incomplete. Falling back to database.");
-
-                var fallback =
-                    await GetDatabasePerformanceAsync(queryDto);
-
-                fallback.Source = "DatabaseFallback";
-
-                return fallback;
-            }
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Tag Redis failed. Falling back to database. {ex.Message}");
-
-            var fallback =
-                await GetDatabasePerformanceAsync(queryDto);
-
-            fallback.Source = "DatabaseFallback";
-
-            return fallback;
-        }
-    }
-
-    private async Task<PerformancePageResponseDto<TagResponseDto>>
-        GetRedisPerformanceCoreAsync(
-            TagPerformanceQueryDto queryDto)
+            GetRedisPerformanceAsync(
+                TagPerformanceQueryDto queryDto)
         {
             ValidatePerformanceQuery(queryDto);
 
@@ -529,9 +436,6 @@ private static void ValidatePerformanceQuery(
         }
     }
 }
-
-
-
 
 
 

@@ -1,4 +1,5 @@
 using WebApplication2.DTOs.People;
+using WebApplication2.DTOs.Performance;
 
 namespace WebApplication2.Services.Interfaces
 {
@@ -16,5 +17,13 @@ namespace WebApplication2.Services.Interfaces
             UpdatePersonDto dto);
 
         Task DeleteAsync(int id);
+
+        Task<PerformancePageResponseDto<PersonResponseDto>>
+            GetDatabasePerformanceAsync(
+                PeoplePerformanceQueryDto queryDto);
+
+        Task<PerformancePageResponseDto<PersonResponseDto>>
+            GetRedisPerformanceAsync(
+                PeoplePerformanceQueryDto queryDto);
     }
 }

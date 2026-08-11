@@ -89,21 +89,9 @@ using WebApplication2.Services.Caching.Interfaces;
             };
 
             await _personRepository.AddAsync(person);
-        await _personRepository.SaveChangesAsync();
+            await _personRepository.SaveChangesAsync();
 
-        var response = MapToResponseDto(person);
-
-        try
-        {
-            await _peopleCacheService.SetAsync(response);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Person was created in database, but Redis update failed. {ex.Message}");
-        }
-
-        return response;
+            return MapToResponseDto(person);
         }
 
         public async Task<PersonResponseDto> UpdateAsync(
@@ -137,19 +125,7 @@ using WebApplication2.Services.Caching.Interfaces;
 
             await _personRepository.SaveChangesAsync();
 
-        var response = MapToResponseDto(person);
-
-        try
-        {
-            await _peopleCacheService.SetAsync(response);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Person was updated in database, but Redis update failed. {ex.Message}");
-        }
-
-        return response;
+            return MapToResponseDto(person);
         }
 
         public async Task DeleteAsync(int id)
@@ -178,19 +154,9 @@ using WebApplication2.Services.Caching.Interfaces;
             person.LastUpdate = DateTime.UtcNow;
 
             await _personRepository.SaveChangesAsync();
-
-        try
-        {
-            await _peopleCacheService.RemoveAsync(id);
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Person was deleted in database, but Redis removal failed. {ex.Message}");
-        }
-    }
 
-    public async Task<PerformancePageResponseDto<PersonResponseDto>>
+        public async Task<PerformancePageResponseDto<PersonResponseDto>>
         GetDatabasePerformanceAsync(
         PeoplePerformanceQueryDto queryDto)
         {
@@ -230,242 +196,56 @@ using WebApplication2.Services.Caching.Interfaces;
             };
         }
         public async Task<PerformancePageResponseDto<PersonResponseDto>>
-        GetRedisPerformanceAsync(
-            PeoplePerformanceQueryDto queryDto)
-    {
-        try
+            GetRedisPerformanceAsync(
+        PeoplePerformanceQueryDto queryDto)
         {
-            var result =
-                await GetRedisPerformanceCoreAsync(queryDto);
+            ValidatePerformanceQuery(queryDto);
 
-            var skippedRecords =
-                (queryDto.PageNumber - 1)
-                * queryDto.PageSize;
+            var totalStopwatch =
+                Stopwatch.StartNew();
 
-            var remainingRecords =
-                Math.Max(
-                    0,
-                    result.TotalRecords - skippedRecords);
+            var redisStopwatch =
+                Stopwatch.StartNew();
 
-            var expectedRecords =
-                Math.Min(
+            var people =
+                await _peopleCacheService.GetPageAsync(
+                    queryDto.PageNumber,
+                    queryDto.PageSize);
+
+            var totalRecords =
+                await _peopleCacheService.GetCountAsync();
+
+            redisStopwatch.Stop();
+
+            totalStopwatch.Stop();
+
+            return new PerformancePageResponseDto<PersonResponseDto>
+            {
+                Source = "Redis",
+
+                PageNumber =
+                    queryDto.PageNumber,
+
+                PageSize =
                     queryDto.PageSize,
-                    remainingRecords);
 
-            var cacheLooksIncomplete =
-                result.TotalRecords == 0
-                || result.ReturnedRecords < expectedRecords;
+                TotalRecords =
+                    (int)totalRecords,
 
-            if (cacheLooksIncomplete)
-            {
-                Console.WriteLine(
-                    "People Redis cache is missing or incomplete. Falling back to database.");
+                ReturnedRecords =
+                    people.Count,
 
-                var fallback =
-                    await GetDatabasePerformanceAsync(queryDto);
+                DatabaseQueryTimeMs = 0,
 
-                fallback.Source = "DatabaseFallback";
+                RedisQueryTimeMs =
+                    redisStopwatch.ElapsedMilliseconds,
 
-                return fallback;
-            }
+                TotalExecutionTimeMs =
+                    totalStopwatch.ElapsedMilliseconds,
 
-            return result;
+                Items = people
+            };
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"People Redis failed. Falling back to database. {ex.Message}");
-
-            var fallback =
-                await GetDatabasePerformanceAsync(queryDto);
-
-            fallback.Source = "DatabaseFallback";
-
-            return fallback;
-        }
-    }
-
-    private async Task<PerformancePageResponseDto<PersonResponseDto>>
-        GetRedisPerformanceCoreAsync(
-            PeoplePerformanceQueryDto queryDto)
-    {
-        ValidatePerformanceQuery(queryDto);
-
-        var totalStopwatch =
-            Stopwatch.StartNew();
-
-        var redisStopwatch =
-            Stopwatch.StartNew();
-
-        List<PersonResponseDto> people;
-        long totalRecords;
-
-        if (queryDto.PersonId.HasValue)
-        {
-            var person =
-                await _peopleCacheService
-                    .GetByIdAsync(
-                        queryDto.PersonId.Value);
-
-            if (person != null &&
-                !string.IsNullOrWhiteSpace(queryDto.PersonName) &&
-                !person.Name.Equals(
-                    queryDto.PersonName.Trim(),
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                person = null;
-            }
-
-            if (person != null &&
-                !MatchesAssignmentStatus(
-                    person,
-                    queryDto.AssignmentStatus))
-            {
-                person = null;
-            }
-
-            people =
-                person == null
-                    ? new List<PersonResponseDto>()
-                    : new List<PersonResponseDto>
-                    {
-                        person
-                    };
-
-            totalRecords =
-                people.Count;
-        }
-        else if (!string.IsNullOrWhiteSpace(
-            queryDto.PersonName))
-        {
-            var person =
-                await _peopleCacheService
-                    .GetByNameAsync(
-                        queryDto.PersonName);
-
-            if (person != null &&
-                !MatchesAssignmentStatus(
-                    person,
-                    queryDto.AssignmentStatus))
-            {
-                person = null;
-            }
-
-            people =
-                person == null
-                    ? new List<PersonResponseDto>()
-                    : new List<PersonResponseDto>
-                    {
-                        person
-                    };
-
-            totalRecords =
-                people.Count;
-        }
-        else if (
-            queryDto.AssignmentStatus?
-                .Trim()
-                .ToLower() == "assigned")
-        {
-            people =
-                await _peopleCacheService
-                    .GetAssignedPageAsync(
-                        queryDto.PageNumber,
-                        queryDto.PageSize);
-
-            totalRecords =
-                await _peopleCacheService
-                    .GetAssignedCountAsync();
-        }
-        else if (
-            queryDto.AssignmentStatus?
-                .Trim()
-                .ToLower() == "unassigned")
-        {
-            people =
-                await _peopleCacheService
-                    .GetUnassignedPageAsync(
-                        queryDto.PageNumber,
-                        queryDto.PageSize);
-
-            totalRecords =
-                await _peopleCacheService
-                    .GetUnassignedCountAsync();
-        }
-        else
-        {
-            people =
-                await _peopleCacheService
-                    .GetPageAsync(
-                        queryDto.PageNumber,
-                        queryDto.PageSize);
-
-            totalRecords =
-                await _peopleCacheService
-                    .GetCountAsync();
-        }
-
-        redisStopwatch.Stop();
-
-        totalStopwatch.Stop();
-
-        return new PerformancePageResponseDto<PersonResponseDto>
-        {
-            Source = "Redis",
-
-            PageNumber =
-                queryDto.PageNumber,
-
-            PageSize =
-                queryDto.PageSize,
-
-            TotalRecords =
-                (int)totalRecords,
-
-            ReturnedRecords =
-                people.Count,
-
-            DatabaseQueryTimeMs = 0,
-
-            RedisQueryTimeMs =
-                redisStopwatch.ElapsedMilliseconds,
-
-            TotalExecutionTimeMs =
-                totalStopwatch.ElapsedMilliseconds,
-
-            Items = people
-        };
-    }
-
-    private static bool MatchesAssignmentStatus(
-        PersonResponseDto person,
-        string? assignmentStatus)
-    {
-        if (string.IsNullOrWhiteSpace(
-            assignmentStatus))
-        {
-            return true;
-        }
-
-        var status =
-            assignmentStatus
-                .Trim()
-                .ToLower();
-
-        if (status == "assigned")
-        {
-            return person.AssociatedTag != null;
-        }
-
-        if (status == "unassigned")
-        {
-            return person.AssociatedTag == null;
-        }
-
-        return true;
-    }
-
-
         private static void ValidatePhoneNumber(string phone)
         {
             var isValid =
@@ -536,9 +316,6 @@ using WebApplication2.Services.Caching.Interfaces;
             }
         }
     }
-
-
-
 
 
 

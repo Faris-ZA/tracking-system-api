@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using WebApplication2.Constants;
 using WebApplication2.DTOs.People;
@@ -89,21 +89,9 @@ using WebApplication2.Services.Caching.Interfaces;
             };
 
             await _personRepository.AddAsync(person);
-        await _personRepository.SaveChangesAsync();
+            await _personRepository.SaveChangesAsync();
 
-        var response = MapToResponseDto(person);
-
-        try
-        {
-            await _peopleCacheService.SetAsync(response);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Person was created in database, but Redis update failed. {ex.Message}");
-        }
-
-        return response;
+            return MapToResponseDto(person);
         }
 
         public async Task<PersonResponseDto> UpdateAsync(
@@ -137,19 +125,7 @@ using WebApplication2.Services.Caching.Interfaces;
 
             await _personRepository.SaveChangesAsync();
 
-        var response = MapToResponseDto(person);
-
-        try
-        {
-            await _peopleCacheService.SetAsync(response);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Person was updated in database, but Redis update failed. {ex.Message}");
-        }
-
-        return response;
+            return MapToResponseDto(person);
         }
 
         public async Task DeleteAsync(int id)
@@ -178,19 +154,9 @@ using WebApplication2.Services.Caching.Interfaces;
             person.LastUpdate = DateTime.UtcNow;
 
             await _personRepository.SaveChangesAsync();
-
-        try
-        {
-            await _peopleCacheService.RemoveAsync(id);
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Person was deleted in database, but Redis removal failed. {ex.Message}");
-        }
-    }
 
-    public async Task<PerformancePageResponseDto<PersonResponseDto>>
+        public async Task<PerformancePageResponseDto<PersonResponseDto>>
         GetDatabasePerformanceAsync(
         PeoplePerformanceQueryDto queryDto)
         {
@@ -231,63 +197,7 @@ using WebApplication2.Services.Caching.Interfaces;
         }
         public async Task<PerformancePageResponseDto<PersonResponseDto>>
         GetRedisPerformanceAsync(
-            PeoplePerformanceQueryDto queryDto)
-    {
-        try
-        {
-            var result =
-                await GetRedisPerformanceCoreAsync(queryDto);
-
-            var skippedRecords =
-                (queryDto.PageNumber - 1)
-                * queryDto.PageSize;
-
-            var remainingRecords =
-                Math.Max(
-                    0,
-                    result.TotalRecords - skippedRecords);
-
-            var expectedRecords =
-                Math.Min(
-                    queryDto.PageSize,
-                    remainingRecords);
-
-            var cacheLooksIncomplete =
-                result.TotalRecords == 0
-                || result.ReturnedRecords < expectedRecords;
-
-            if (cacheLooksIncomplete)
-            {
-                Console.WriteLine(
-                    "People Redis cache is missing or incomplete. Falling back to database.");
-
-                var fallback =
-                    await GetDatabasePerformanceAsync(queryDto);
-
-                fallback.Source = "DatabaseFallback";
-
-                return fallback;
-            }
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"People Redis failed. Falling back to database. {ex.Message}");
-
-            var fallback =
-                await GetDatabasePerformanceAsync(queryDto);
-
-            fallback.Source = "DatabaseFallback";
-
-            return fallback;
-        }
-    }
-
-    private async Task<PerformancePageResponseDto<PersonResponseDto>>
-        GetRedisPerformanceCoreAsync(
-            PeoplePerformanceQueryDto queryDto)
+    PeoplePerformanceQueryDto queryDto)
     {
         ValidatePerformanceQuery(queryDto);
 
@@ -536,9 +446,6 @@ using WebApplication2.Services.Caching.Interfaces;
             }
         }
     }
-
-
-
 
 
 

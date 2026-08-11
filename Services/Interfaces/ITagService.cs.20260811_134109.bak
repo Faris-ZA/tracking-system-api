@@ -19,11 +19,7 @@ namespace WebApplication2.Services.Interfaces
         Task DeleteAsync(int id);
 
         Task<PerformancePageResponseDto<TagResponseDto>>
-            GetDatabasePerformanceAsync(
-                TagPerformanceQueryDto queryDto);
-
-        Task<PerformancePageResponseDto<TagResponseDto>>
-            GetRedisPerformanceAsync(
-                TagPerformanceQueryDto queryDto);
+          GetDatabasePerformanceAsync(
+            TagPerformanceQueryDto queryDto);
     }
 }

@@ -1,0 +1,265 @@
+using WebApplication2.DTOs.People;
+using WebApplication2.Services.Caching.Interfaces;
+
+namespace WebApplication2.Services.Caching.Implementations
+{
+    public class PeopleCacheService : IPeopleCacheService
+    {
+        private const string PeopleIdsKey =
+            "people:ids";
+
+        private const string AssignedPeopleIdsKey =
+            "people:assigned";
+
+        private const string UnassignedPeopleIdsKey =
+            "people:unassigned";
+
+        private readonly IRedisCacheService _redisCacheService;
+
+        public PeopleCacheService(
+            IRedisCacheService redisCacheService)
+        {
+            _redisCacheService = redisCacheService;
+        }
+
+        public async Task<PersonResponseDto?> GetByIdAsync(
+            int personId)
+        {
+            var key =
+                GetPersonKey(personId);
+
+            return await _redisCacheService
+                .GetAsync<PersonResponseDto>(key);
+        }
+
+        public async Task SetAsync(
+            PersonResponseDto person)
+        {
+            var key =
+                GetPersonKey(person.Id);
+
+            await _redisCacheService
+                .SetAsync(
+                    key,
+                    person);
+
+            await _redisCacheService
+                .AddToSortedSetAsync(
+                    PeopleIdsKey,
+                    person.Id.ToString(),
+                    person.Id);
+
+            if (person.AssociatedTag != null)
+            {
+                await _redisCacheService
+                    .AddToSortedSetAsync(
+                        AssignedPeopleIdsKey,
+                        person.Id.ToString(),
+                        person.Id);
+
+                await _redisCacheService
+                    .RemoveFromSortedSetAsync(
+                        UnassignedPeopleIdsKey,
+                        person.Id.ToString());
+            }
+            else
+            {
+                await _redisCacheService
+                    .AddToSortedSetAsync(
+                        UnassignedPeopleIdsKey,
+                        person.Id.ToString(),
+                        person.Id);
+
+                await _redisCacheService
+                    .RemoveFromSortedSetAsync(
+                        AssignedPeopleIdsKey,
+                        person.Id.ToString());
+            }
+        }
+
+        public async Task SetBatchAsync(
+            List<PersonResponseDto> people)
+        {
+            var tasks =
+                new List<Task>();
+
+            foreach (var person in people)
+            {
+                var key =
+                    GetPersonKey(person.Id);
+
+                tasks.Add(
+                    _redisCacheService.SetAsync(
+                        key,
+                        person));
+
+                tasks.Add(
+                    _redisCacheService.AddToSortedSetAsync(
+                        PeopleIdsKey,
+                        person.Id.ToString(),
+                        person.Id));
+
+                if (person.AssociatedTag != null)
+                {
+                    tasks.Add(
+                        _redisCacheService.AddToSortedSetAsync(
+                            AssignedPeopleIdsKey,
+                            person.Id.ToString(),
+                            person.Id));
+                }
+                else
+                {
+                    tasks.Add(
+                        _redisCacheService.AddToSortedSetAsync(
+                            UnassignedPeopleIdsKey,
+                            person.Id.ToString(),
+                            person.Id));
+                }
+            }
+
+            await Task.WhenAll(tasks);
+        }
+
+        public async Task RemoveAsync(
+            int personId)
+        {
+            var key =
+                GetPersonKey(personId);
+
+            await _redisCacheService
+                .RemoveAsync(key);
+
+            await _redisCacheService
+                .RemoveFromSortedSetAsync(
+                    PeopleIdsKey,
+                    personId.ToString());
+
+            await _redisCacheService
+                .RemoveFromSortedSetAsync(
+                    AssignedPeopleIdsKey,
+                    personId.ToString());
+
+            await _redisCacheService
+                .RemoveFromSortedSetAsync(
+                    UnassignedPeopleIdsKey,
+                    personId.ToString());
+        }
+
+        public async Task<List<int>> GetPageIdsAsync(
+            int pageNumber,
+            int pageSize)
+        {
+            var start =
+                (pageNumber - 1) * pageSize;
+
+            var stop =
+                start + pageSize - 1;
+
+            var values =
+                await _redisCacheService
+                    .GetSortedSetRangeAsync(
+                        PeopleIdsKey,
+                        start,
+                        stop);
+
+            return values
+                .Select(int.Parse)
+                .ToList();
+        }
+
+        public async Task<List<PersonResponseDto>> GetPageAsync(
+            int pageNumber,
+            int pageSize)
+        {
+            return await GetPageFromIndexAsync(
+                PeopleIdsKey,
+                pageNumber,
+                pageSize);
+        }
+
+        public async Task<long> GetCountAsync()
+        {
+            return await _redisCacheService
+                .GetSortedSetCountAsync(
+                    PeopleIdsKey);
+        }
+
+        public async Task<List<PersonResponseDto>>
+            GetAssignedPageAsync(
+                int pageNumber,
+                int pageSize)
+        {
+            return await GetPageFromIndexAsync(
+                AssignedPeopleIdsKey,
+                pageNumber,
+                pageSize);
+        }
+
+        public async Task<List<PersonResponseDto>>
+            GetUnassignedPageAsync(
+                int pageNumber,
+                int pageSize)
+        {
+            return await GetPageFromIndexAsync(
+                UnassignedPeopleIdsKey,
+                pageNumber,
+                pageSize);
+        }
+
+        public async Task<long> GetAssignedCountAsync()
+        {
+            return await _redisCacheService
+                .GetSortedSetCountAsync(
+                    AssignedPeopleIdsKey);
+        }
+
+        public async Task<long> GetUnassignedCountAsync()
+        {
+            return await _redisCacheService
+                .GetSortedSetCountAsync(
+                    UnassignedPeopleIdsKey);
+        }
+
+        private async Task<List<PersonResponseDto>>
+            GetPageFromIndexAsync(
+                string indexKey,
+                int pageNumber,
+                int pageSize)
+        {
+            var start =
+                (pageNumber - 1) * pageSize;
+
+            var stop =
+                start + pageSize - 1;
+
+            var values =
+                await _redisCacheService
+                    .GetSortedSetRangeAsync(
+                        indexKey,
+                        start,
+                        stop);
+
+            var ids =
+                values
+                    .Select(int.Parse)
+                    .ToList();
+
+            var tasks =
+                ids.Select(GetByIdAsync);
+
+            var people =
+                await Task.WhenAll(tasks);
+
+            return people
+                .Where(person => person != null)
+                .Select(person => person!)
+                .ToList();
+        }
+
+        private static string GetPersonKey(
+            int personId)
+        {
+            return $"person:{personId}";
+        }
+    }
+}

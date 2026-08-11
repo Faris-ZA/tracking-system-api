@@ -76,18 +76,5 @@ namespace WebApplication2.Controllers
 
             return NoContent();
         }
-    
-
-        [HttpGet("performance/redis")]
-        public async Task<IActionResult> GetRedisPerformance(
-            [FromQuery] TagPerformanceQueryDto queryDto)
-        {
-            var result =
-                await _tagService
-                    .GetRedisPerformanceAsync(
-                        queryDto);
-
-            return Ok(result);
-        }
     }
 }

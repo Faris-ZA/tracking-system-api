@@ -1,0 +1,25 @@
+﻿using WebApplication2.DTOs.Tags;
+
+namespace WebApplication2.Services.Caching.Interfaces
+{
+    public interface ITagCacheService
+    {
+        Task<TagResponseDto?> GetByIdAsync(
+            int tagId);
+
+        Task SetAsync(
+            TagResponseDto tag);
+
+        Task RemoveAsync(
+            int tagId);
+
+        Task<List<int>> GetPageIdsAsync(
+            int pageNumber,
+            int pageSize);
+
+        Task<long> GetCountAsync();
+
+        Task SetBatchAsync(
+            List<TagResponseDto> tags);
+    }
+}

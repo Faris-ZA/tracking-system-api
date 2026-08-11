@@ -1,3 +1,6 @@
+﻿using WebApplication2.Services.Caching.Interfaces;
+using WebApplication2.DTOs.Tags;
+using WebApplication2.DTOs.People;
 using WebApplication2.Constants;
 using WebApplication2.Dtos.PeopleTagAssociations;
 using WebApplication2.DTOs.PeopleTagAssociations;
@@ -18,17 +21,27 @@ namespace WebApplication2.Services.Implementations
             _personRepository;
 
         private readonly ITagRepository
-            _tagRepository;
+        _tagRepository;
+
+    private readonly IPeopleCacheService
+        _peopleCacheService;
+
+    private readonly ITagCacheService
+        _tagCacheService;
 
         public PeopleTagAssociationService(
-            IPeopleTagAssociationRepository associationRepository,
-            IPersonRepository personRepository,
-            ITagRepository tagRepository)
-        {
-            _associationRepository = associationRepository;
-            _personRepository = personRepository;
-            _tagRepository = tagRepository;
-        }
+        IPeopleTagAssociationRepository associationRepository,
+        IPersonRepository personRepository,
+        ITagRepository tagRepository,
+        IPeopleCacheService peopleCacheService,
+        ITagCacheService tagCacheService)
+    {
+        _associationRepository = associationRepository;
+        _personRepository = personRepository;
+        _tagRepository = tagRepository;
+        _peopleCacheService = peopleCacheService;
+        _tagCacheService = tagCacheService;
+    }
 
         public async Task<PeopleTagAssociationResponseDto> CreateAsync(
             CreatePeopleTagAssociationDto dto)
@@ -79,7 +92,55 @@ namespace WebApplication2.Services.Implementations
             };
 
             await _associationRepository.AddAsync(association);
-            await _associationRepository.SaveChangesAsync();
+        await _associationRepository.SaveChangesAsync();
+
+        try
+        {
+            var personCache = new PersonResponseDto
+            {
+                Id = person.Id,
+                Name = person.Name,
+                Phone = person.Phone,
+                CreateDate = person.CreateDate,
+                LastUpdate = person.LastUpdate,
+                AssociatedTag = new AssociatedTagDto
+                {
+                    Id = tag.Id,
+                    Mac = tag.Mac
+                }
+            };
+
+            var tagCache = new TagResponseDto
+            {
+                Id = tag.Id,
+                Label = tag.Label,
+                Mac = tag.Mac,
+                CreateDate = tag.CreateDate,
+                LastUpdate = tag.LastUpdate,
+                AssociatedPerson = new AssociatedPersonDto
+                {
+                    Id = person.Id,
+                    Name = person.Name
+                }
+            };
+
+            await _peopleCacheService.SetAsync(personCache);
+            await _tagCacheService.SetAsync(tagCache);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Association was created in database, but Redis synchronization failed. {ex.Message}");
+
+            try
+            {
+                await _peopleCacheService.RemoveAsync(person.Id);
+                await _tagCacheService.RemoveAsync(tag.Id);
+            }
+            catch
+            {
+            }
+        }
 
             return new PeopleTagAssociationResponseDto
             {
@@ -123,7 +184,47 @@ namespace WebApplication2.Services.Implementations
 
             _associationRepository.Remove(association);
 
-            await _associationRepository.SaveChangesAsync();
+        await _associationRepository.SaveChangesAsync();
+
+        try
+        {
+            var personCache = new PersonResponseDto
+            {
+                Id = person.Id,
+                Name = person.Name,
+                Phone = person.Phone,
+                CreateDate = person.CreateDate,
+                LastUpdate = person.LastUpdate,
+                AssociatedTag = null
+            };
+
+            var tagCache = new TagResponseDto
+            {
+                Id = tag.Id,
+                Label = tag.Label,
+                Mac = tag.Mac,
+                CreateDate = tag.CreateDate,
+                LastUpdate = tag.LastUpdate,
+                AssociatedPerson = null
+            };
+
+            await _peopleCacheService.SetAsync(personCache);
+            await _tagCacheService.SetAsync(tagCache);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Association was deleted from database, but Redis synchronization failed. {ex.Message}");
+
+            try
+            {
+                await _peopleCacheService.RemoveAsync(person.Id);
+                await _tagCacheService.RemoveAsync(tag.Id);
+            }
+            catch
+            {
+            }
+        }
         }
 
     }

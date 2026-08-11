@@ -90,21 +90,9 @@ namespace WebApplication2.Services.Implementations
             };
 
             await _tagRepository.AddAsync(tag);
-        await _tagRepository.SaveChangesAsync();
+            await _tagRepository.SaveChangesAsync();
 
-        var response = MapToResponseDto(tag);
-
-        try
-        {
-            await _tagCacheService.SetAsync(response);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Tag was created in database, but Redis update failed. {ex.Message}");
-        }
-
-        return response;
+            return MapToResponseDto(tag);
         }
 
         public async Task<TagResponseDto> UpdateAsync(
@@ -126,29 +114,14 @@ namespace WebApplication2.Services.Implementations
                     ErrorMessages.TagLabelRequired);
             }
 
-            var oldLabel = tag.Label;
-
             tag.Label = dto.Label.Trim();
-
             tag.UpdateStatus =
                 UpdateStatus.Updated;
             tag.LastUpdate = DateTime.UtcNow;
 
             await _tagRepository.SaveChangesAsync();
 
-        var response = MapToResponseDto(tag);
-
-        try
-        {
-            await _tagCacheService.UpdateLabelAsync(response, oldLabel);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Tag was updated in database, but Redis update failed. {ex.Message}");
-        }
-
-        return response;
+            return MapToResponseDto(tag);
         }
 
         public async Task<PerformancePageResponseDto<TagResponseDto>>
@@ -210,19 +183,9 @@ namespace WebApplication2.Services.Implementations
             tag.LastUpdate = DateTime.UtcNow;
 
             await _tagRepository.SaveChangesAsync();
-
-        try
-        {
-            await _tagCacheService.RemoveAsync(id);
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Tag was deleted in database, but Redis removal failed. {ex.Message}");
-        }
-    }
 
-    private static void ValidateMacAddress(string mac)
+        private static void ValidateMacAddress(string mac)
         {
             var isValid = Regex.IsMatch(
                 mac,
@@ -529,7 +492,6 @@ private static void ValidatePerformanceQuery(
         }
     }
 }
-
 
 
 

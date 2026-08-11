@@ -1,0 +1,29 @@
+using WebApplication2.DTOs.People;
+
+namespace WebApplication2.Services.Caching.Interfaces
+{
+    public interface IPeopleCacheService
+    {
+        Task<PersonResponseDto?> GetByIdAsync(
+            int personId);
+
+        Task SetAsync(
+            PersonResponseDto person);
+
+        Task RemoveAsync(
+            int personId);
+
+        Task<List<int>> GetPageIdsAsync(
+            int pageNumber,
+            int pageSize);
+
+        Task<long> GetCountAsync();
+
+        Task SetBatchAsync(
+            List<PersonResponseDto> people);
+
+        Task<List<PersonResponseDto>> GetPageAsync(
+            int pageNumber,
+            int pageSize);
+    }
+}
