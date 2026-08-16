@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using WebApplication2.DTOs.People;
+using WebApplication2.DTOs.Performance;
 using WebApplication2.Services.Interfaces;
 
 namespace WebApplication2.Controllers
@@ -64,5 +65,28 @@ namespace WebApplication2.Controllers
 
             return NoContent();
         }
+
+        [HttpGet("performance/database")]
+        public async Task<IActionResult> GetDatabasePerformance(
+            [FromQuery] PeoplePerformanceQueryDto queryDto)
+        {
+            var result =
+                await _personService
+                    .GetDatabasePerformanceAsync(queryDto);
+
+            return Ok(result);
+        }
+
+        [HttpGet("performance/cache")]
+        public async Task<IActionResult> GetCachePerformance(
+            [FromQuery] PeoplePerformanceQueryDto queryDto)
+        {
+            var result =
+                await _personService
+                    .GetCachePerformanceAsync(queryDto);
+
+            return Ok(result);
+        }   
     }
 }
+

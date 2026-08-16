@@ -1,0 +1,7 @@
+"Test","Source","AverageQueryTimeMs","AverageTotalTimeMs"
+"People assigned","Database","482","540.2"
+"People assigned","Redis","9.2","9.2"
+"Person filter","Database","97.2","158.2"
+"Person filter","Redis","0.6","0.6"
+"Tags assigned","Database","0","0"
+"Tags assigned","Redis","0","0"

@@ -1,4 +1,5 @@
 using WebApplication2.DTOs.Tags;
+using WebApplication2.DTOs.Performance;
 
 namespace WebApplication2.Services.Interfaces
 {
@@ -16,5 +17,16 @@ namespace WebApplication2.Services.Interfaces
             UpdateTagDto dto);
 
         Task DeleteAsync(int id);
+
+        Task<PerformancePageResponseDto<TagResponseDto>>
+            GetDatabasePerformanceAsync(
+                TagPerformanceQueryDto queryDto);
+
+        Task<PerformancePageResponseDto<TagResponseDto>>
+            GetCachePerformanceAsync(
+                TagPerformanceQueryDto queryDto);
+
+        Task WarmCacheAsync(
+            CancellationToken cancellationToken);
     }
 }

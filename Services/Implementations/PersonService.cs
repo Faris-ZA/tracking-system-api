@@ -1,21 +1,25 @@
-﻿using WebApplication2.Constants;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
+using WebApplication2.Constants;
 using WebApplication2.DTOs.People;
+using WebApplication2.DTOs.Performance;
 using WebApplication2.Exceptions;
 using WebApplication2.Models;
 using WebApplication2.Repositories.Interfaces;
 using WebApplication2.Services.Interfaces;
-using System.Text.RegularExpressions;
+namespace WebApplication2.Services.Implementations;
+using WebApplication2.Services.Caching.Interfaces;
 
-namespace WebApplication2.Services.Implementations
-{
     public class PersonService : IPersonService
     {
         private readonly IPersonRepository _personRepository;
-
+        private readonly IPeopleCacheService _peopleCacheService;
         public PersonService(
-            IPersonRepository personRepository)
+            IPersonRepository personRepository,
+            IPeopleCacheService peopleCacheService)
         {
             _personRepository = personRepository;
+            _peopleCacheService = peopleCacheService;
         }
 
         public async Task<List<PersonResponseDto>> GetAllAsync()
@@ -85,9 +89,21 @@ namespace WebApplication2.Services.Implementations
             };
 
             await _personRepository.AddAsync(person);
-            await _personRepository.SaveChangesAsync();
+        await _personRepository.SaveChangesAsync();
 
-            return MapToResponseDto(person);
+        var response = MapToResponseDto(person);
+
+        try
+        {
+            await _peopleCacheService.SetAsync(response);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"{CacheMessages.PersonCreateFailed} {ex.Message}");
+        }
+
+        return response;
         }
 
         public async Task<PersonResponseDto> UpdateAsync(
@@ -121,7 +137,19 @@ namespace WebApplication2.Services.Implementations
 
             await _personRepository.SaveChangesAsync();
 
-            return MapToResponseDto(person);
+        var response = MapToResponseDto(person);
+
+        try
+        {
+            await _peopleCacheService.SetAsync(response);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"{CacheMessages.PersonUpdateFailed} {ex.Message}");
+        }
+
+        return response;
         }
 
         public async Task DeleteAsync(int id)
@@ -150,7 +178,277 @@ namespace WebApplication2.Services.Implementations
             person.LastUpdate = DateTime.UtcNow;
 
             await _personRepository.SaveChangesAsync();
+
+        try
+        {
+            await _peopleCacheService.RemoveAsync(id);
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"{CacheMessages.PersonDeleteFailed} {ex.Message}");
+        }
+    }
+
+    public async Task<PerformancePageResponseDto<PersonResponseDto>>
+        GetDatabasePerformanceAsync(
+        PeoplePerformanceQueryDto queryDto)
+        {
+            ValidatePerformanceQuery(queryDto);
+
+            var totalStopwatch = Stopwatch.StartNew();
+
+            var databaseResult =
+                await _personRepository
+                    .GetPerformancePageAsync(queryDto);
+
+            var items = databaseResult.Items
+                .Select(MapToResponseDto)
+                .ToList();
+
+            totalStopwatch.Stop();
+
+            return new PerformancePageResponseDto<PersonResponseDto>
+            {
+                Source = PerformanceSources.Database,
+
+                PageNumber = queryDto.PageNumber,
+
+                PageSize = queryDto.PageSize,
+
+                TotalRecords = databaseResult.TotalRecords,
+
+                ReturnedRecords = items.Count,
+
+                DatabaseQueryTimeMs =
+                    databaseResult.DatabaseQueryTimeMs,
+
+                TotalExecutionTimeMs =
+                    totalStopwatch.ElapsedMilliseconds,
+
+                Items = items
+            };
+        }
+        public async Task<PerformancePageResponseDto<PersonResponseDto>>
+        GetCachePerformanceAsync(
+            PeoplePerformanceQueryDto queryDto)
+    {
+        try
+        {
+            var result =
+                await GetCachePerformanceCoreAsync(queryDto);
+
+            var skippedRecords =
+                (queryDto.PageNumber - 1)
+                * queryDto.PageSize;
+
+            var remainingRecords =
+                Math.Max(
+                    0,
+                    result.TotalRecords - skippedRecords);
+
+            var expectedRecords =
+                Math.Min(
+                    queryDto.PageSize,
+                    remainingRecords);
+
+            var cacheLooksIncomplete =
+                result.TotalRecords == 0
+                || result.ReturnedRecords < expectedRecords;
+
+            if (cacheLooksIncomplete)
+            {
+                Console.WriteLine(
+                    CacheMessages.PeopleCacheIncomplete);
+
+                var fallback =
+                    await GetDatabasePerformanceAsync(queryDto);
+
+                fallback.Source = PerformanceSources.DatabaseFallback;
+
+                return fallback;
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"{CacheMessages.PeopleCacheFailed} {ex.Message}");
+
+            var fallback =
+                await GetDatabasePerformanceAsync(queryDto);
+
+            fallback.Source = PerformanceSources.DatabaseFallback;
+
+            return fallback;
+        }
+    }
+
+    private async Task<PerformancePageResponseDto<PersonResponseDto>>
+        GetCachePerformanceCoreAsync(
+            PeoplePerformanceQueryDto queryDto)
+    {
+        ValidatePerformanceQuery(queryDto);
+
+        var totalStopwatch =
+            Stopwatch.StartNew();
+
+        var cacheStopwatch =
+            Stopwatch.StartNew();
+
+        List<PersonResponseDto> people;
+        long totalRecords;
+
+        if (queryDto.PersonId.HasValue)
+        {
+            var person =
+                await _peopleCacheService
+                    .GetByIdAsync(
+                        queryDto.PersonId.Value);
+
+            if (person != null &&
+                !string.IsNullOrWhiteSpace(queryDto.PersonName) &&
+                !person.Name.Equals(
+                    queryDto.PersonName.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                person = null;
+            }
+
+            if (person != null &&
+                !MatchesAssignmentStatus(
+                    person,
+                    queryDto.IsAssigned))
+            {
+                person = null;
+            }
+
+            people =
+                person == null
+                    ? new List<PersonResponseDto>()
+                    : new List<PersonResponseDto>
+                    {
+                        person
+                    };
+
+            totalRecords =
+                people.Count;
+        }
+        else if (!string.IsNullOrWhiteSpace(
+            queryDto.PersonName))
+        {
+            var person =
+                await _peopleCacheService
+                    .GetByNameAsync(
+                        queryDto.PersonName);
+
+            if (person != null &&
+                !MatchesAssignmentStatus(
+                    person,
+                    queryDto.IsAssigned))
+            {
+                person = null;
+            }
+
+            people =
+                person == null
+                    ? new List<PersonResponseDto>()
+                    : new List<PersonResponseDto>
+                    {
+                        person
+                    };
+
+            totalRecords =
+                people.Count;
+        }
+        else if (
+            queryDto.IsAssigned == true)
+        {
+            people =
+                await _peopleCacheService
+                    .GetAssignedPageAsync(
+                        queryDto.PageNumber,
+                        queryDto.PageSize);
+
+            totalRecords =
+                await _peopleCacheService
+                    .GetAssignedCountAsync();
+        }
+        else if (
+            queryDto.IsAssigned == false)
+        {
+            people =
+                await _peopleCacheService
+                    .GetUnassignedPageAsync(
+                        queryDto.PageNumber,
+                        queryDto.PageSize);
+
+            totalRecords =
+                await _peopleCacheService
+                    .GetUnassignedCountAsync();
+        }
+        else
+        {
+            people =
+                await _peopleCacheService
+                    .GetPageAsync(
+                        queryDto.PageNumber,
+                        queryDto.PageSize);
+
+            totalRecords =
+                await _peopleCacheService
+                    .GetCountAsync();
+        }
+
+        cacheStopwatch.Stop();
+
+        totalStopwatch.Stop();
+
+        return new PerformancePageResponseDto<PersonResponseDto>
+        {
+            Source = PerformanceSources.Cache,
+
+            PageNumber =
+                queryDto.PageNumber,
+
+            PageSize =
+                queryDto.PageSize,
+
+            TotalRecords =
+                (int)totalRecords,
+
+            ReturnedRecords =
+                people.Count,
+
+            DatabaseQueryTimeMs = 0,
+
+            CacheQueryTimeMs =
+                cacheStopwatch.ElapsedMilliseconds,
+
+            TotalExecutionTimeMs =
+                totalStopwatch.ElapsedMilliseconds,
+
+            Items = people
+        };
+    }
+
+    private static bool MatchesAssignmentStatus(
+            PersonResponseDto person,
+            bool? isAssigned)
+        {
+            if (!isAssigned.HasValue)
+            {
+                return true;
+            }
+
+            return isAssigned.Value
+                ? person.AssociatedTag != null
+                : person.AssociatedTag == null;
+        }
+
+
+
         private static void ValidatePhoneNumber(string phone)
         {
             var isValid =
@@ -178,17 +476,85 @@ namespace WebApplication2.Services.Implementations
                 CreateDate = person.CreateDate,
                 LastUpdate = person.LastUpdate,
 
-                AssociatedTag = activeAssociation == null 
+                AssociatedTag = activeAssociation == null
                 ? null
                 : new AssociatedTagDto
                 {
                     Id = activeAssociation.Tag.Id,
-                    Mac = activeAssociation.Tag.Mac 
+                    Mac = activeAssociation.Tag.Mac
                 }
             };
         }
+
+        private static void ValidatePerformanceQuery(
+          PeoplePerformanceQueryDto queryDto)
+        {
+            if (queryDto.PageNumber < 1)
+            {
+                throw new BadRequestException(
+                    ErrorMessages.InvalidPageNumber);
+            }
+
+            if (queryDto.PageSize < 1 ||
+                queryDto.PageSize > 500)
+            {
+                throw new BadRequestException(
+                    ErrorMessages.InvalidPageSize);
+            }
+        }
+       public async Task WarmCacheAsync(
+           CancellationToken cancellationToken)
+       {
+            const int batchSize = 5000;
+
+            var skip = 0;
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var people =
+                    await _personRepository.GetBatchAsync(
+                        skip,
+                        batchSize);
+
+                if (people.Count == 0)
+                {
+                    break;
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var peopleDtos =
+                    people
+                        .Select(MapToResponseDto)
+                        .ToList();
+
+                await _peopleCacheService
+                    .SetBatchAsync(peopleDtos);
+
+                if (people.Count < batchSize)
+                {
+                    break;
+                }
+
+                skip += batchSize;
+            }
+       }
     }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
