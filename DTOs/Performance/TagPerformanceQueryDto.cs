@@ -6,7 +6,7 @@ namespace WebApplication2.DTOs.Performance
 
         public string? TagLabel { get; set; }
 
-        public string? AssignmentStatus { get; set; }
+        public bool? IsAssigned { get; set; }
 
         public int PageNumber { get; set; } = 1;
 

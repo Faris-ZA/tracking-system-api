@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Npgsql.NameTranslation;
 using WebApplication2.BackgroundServices;
 using WebApplication2.Configuration;
@@ -125,7 +125,7 @@ builder.Services.AddScoped<IPeopleCacheService, PeopleCacheService>();
 
 builder.Services.AddScoped<ITagCacheService, TagCacheService>();
 
-builder.Services.AddHostedService<RedisCacheWarmupService>();
+builder.Services.AddHostedService<CacheWarmupService>();
 
 builder.Services.AddOpenApi();
 
@@ -154,6 +154,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
 
 
 

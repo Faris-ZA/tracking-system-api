@@ -106,54 +106,76 @@ namespace WebApplication2.Services.Caching.Implementations
         public async Task SetBatchAsync(
             List<TagResponseDto> tags)
         {
-            var tasks =
-                new List<Task>();
+            const int redisBatchSize = 250;
 
-            foreach (var tag in tags)
+            for (var i = 0;
+                 i < tags.Count;
+                 i += redisBatchSize)
             {
-                var key =
-                    GetTagKey(tag.Id);
+                var batch =
+                    tags
+                        .Skip(i)
+                        .Take(redisBatchSize);
 
-                var labelKey =
-                    GetTagLabelKey(
-                        NormalizeLabel(tag.Label));
+                var tasks =
+                    new List<Task>();
 
-                tasks.Add(
-                    _redisCacheService.SetAsync(
-                        key,
-                        tag));
-
-                tasks.Add(
-                    _redisCacheService.AddToSortedSetAsync(
-                        TagsIdsKey,
-                        tag.Id.ToString(),
-                        tag.Id));
-
-                tasks.Add(
-                    _redisCacheService.AddToSortedSetAsync(
-                        labelKey,
-                        tag.Id.ToString(),
-                        tag.Id));
-
-                if (tag.AssociatedPerson != null)
+                foreach (var tag in batch)
                 {
+                    var key =
+                        GetTagKey(tag.Id);
+
+                    var labelKey =
+                        GetTagLabelKey(
+                            NormalizeLabel(tag.Label));
+
+                    tasks.Add(
+                        _redisCacheService.SetAsync(
+                            key,
+                            tag));
+
                     tasks.Add(
                         _redisCacheService.AddToSortedSetAsync(
-                            AssignedTagsIdsKey,
+                            TagsIdsKey,
                             tag.Id.ToString(),
                             tag.Id));
-                }
-                else
-                {
+
                     tasks.Add(
                         _redisCacheService.AddToSortedSetAsync(
-                            UnassignedTagsIdsKey,
+                            labelKey,
                             tag.Id.ToString(),
                             tag.Id));
+
+                    if (tag.AssociatedPerson != null)
+                    {
+                        tasks.Add(
+                            _redisCacheService.AddToSortedSetAsync(
+                                AssignedTagsIdsKey,
+                                tag.Id.ToString(),
+                                tag.Id));
+
+                        tasks.Add(
+                            _redisCacheService.RemoveFromSortedSetAsync(
+                                UnassignedTagsIdsKey,
+                                tag.Id.ToString()));
+                    }
+                    else
+                    {
+                        tasks.Add(
+                            _redisCacheService.AddToSortedSetAsync(
+                                UnassignedTagsIdsKey,
+                                tag.Id.ToString(),
+                                tag.Id));
+
+                        tasks.Add(
+                            _redisCacheService.RemoveFromSortedSetAsync(
+                                AssignedTagsIdsKey,
+                                tag.Id.ToString()));
+                    }
                 }
+
+                await Task.WhenAll(tasks);
             }
-
-            await Task.WhenAll(tasks);
         }
 
         public async Task RemoveAsync(

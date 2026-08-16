@@ -111,53 +111,75 @@ namespace WebApplication2.Services.Caching.Implementations
         public async Task SetBatchAsync(
             List<PersonResponseDto> people)
         {
-            var tasks =
-                new List<Task>();
+            const int redisBatchSize = 250;
 
-            foreach (var person in people)
+            for (var i = 0;
+                 i < people.Count;
+                 i += redisBatchSize)
             {
-                var key =
-                    GetPersonKey(person.Id);
+                var batch =
+                    people
+                        .Skip(i)
+                        .Take(redisBatchSize);
 
-                var nameKey =
-                    GetPersonNameKey(
-                        NormalizeName(person.Name));
+                var tasks =
+                    new List<Task>();
 
-                tasks.Add(
-                    _redisCacheService.SetAsync(
-                        key,
-                        person));
-
-                tasks.Add(
-                    _redisCacheService.SetAsync(
-                        nameKey,
-                        person.Id.ToString()));
-
-                tasks.Add(
-                    _redisCacheService.AddToSortedSetAsync(
-                        PeopleIdsKey,
-                        person.Id.ToString(),
-                        person.Id));
-
-                if (person.AssociatedTag != null)
+                foreach (var person in batch)
                 {
+                    var key =
+                        GetPersonKey(person.Id);
+
+                    var nameKey =
+                        GetPersonNameKey(
+                            NormalizeName(person.Name));
+
+                    tasks.Add(
+                        _redisCacheService.SetAsync(
+                            key,
+                            person));
+
+                    tasks.Add(
+                        _redisCacheService.SetAsync(
+                            nameKey,
+                            person.Id.ToString()));
+
                     tasks.Add(
                         _redisCacheService.AddToSortedSetAsync(
-                            AssignedPeopleIdsKey,
+                            PeopleIdsKey,
                             person.Id.ToString(),
                             person.Id));
+
+                    if (person.AssociatedTag != null)
+                    {
+                        tasks.Add(
+                            _redisCacheService.AddToSortedSetAsync(
+                                AssignedPeopleIdsKey,
+                                person.Id.ToString(),
+                                person.Id));
+
+                        tasks.Add(
+                            _redisCacheService.RemoveFromSortedSetAsync(
+                                UnassignedPeopleIdsKey,
+                                person.Id.ToString()));
+                    }
+                    else
+                    {
+                        tasks.Add(
+                            _redisCacheService.AddToSortedSetAsync(
+                                UnassignedPeopleIdsKey,
+                                person.Id.ToString(),
+                                person.Id));
+
+                        tasks.Add(
+                            _redisCacheService.RemoveFromSortedSetAsync(
+                                AssignedPeopleIdsKey,
+                                person.Id.ToString()));
+                    }
                 }
-                else
-                {
-                    tasks.Add(
-                        _redisCacheService.AddToSortedSetAsync(
-                            UnassignedPeopleIdsKey,
-                            person.Id.ToString(),
-                            person.Id));
-                }
+
+                await Task.WhenAll(tasks);
             }
-
-            await Task.WhenAll(tasks);
         }
 
         public async Task RemoveAsync(

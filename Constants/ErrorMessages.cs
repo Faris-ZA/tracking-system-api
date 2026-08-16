@@ -117,7 +117,7 @@
             "The zone does not belong to the selected floor.";
 
         public const string ImportFileRequired =
-    "       An import file is required.";
+            "An import file is required.";
 
         public const string ImportFileEmpty =
             "The import file is empty.";
@@ -136,8 +136,5 @@
 
         public const string InvalidPageSize =
             "Page size must be between 1 and 500.";
-
-        public const string InvalidAssignmentStatus =
-            "Assignment status must be assigned or unassigned.";
-}
+    }
 }

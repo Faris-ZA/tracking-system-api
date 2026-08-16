@@ -77,15 +77,16 @@ namespace WebApplication2.Controllers
             return Ok(result);
         }
 
-        [HttpGet("performance/redis")]
-        public async Task<IActionResult> GetRedisPerformance(
+        [HttpGet("performance/cache")]
+        public async Task<IActionResult> GetCachePerformance(
             [FromQuery] PeoplePerformanceQueryDto queryDto)
         {
             var result =
                 await _personService
-                    .GetRedisPerformanceAsync(queryDto);
+                    .GetCachePerformanceAsync(queryDto);
 
             return Ok(result);
         }   
     }
 }
+

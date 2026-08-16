@@ -23,7 +23,10 @@ namespace WebApplication2.Services.Interfaces
                 PeoplePerformanceQueryDto queryDto);
 
         Task<PerformancePageResponseDto<PersonResponseDto>>
-            GetRedisPerformanceAsync(
+            GetCachePerformanceAsync(
                 PeoplePerformanceQueryDto queryDto);
+        Task WarmCacheAsync(
+            CancellationToken cancellationToken);
     }
 }
+

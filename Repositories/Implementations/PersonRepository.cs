@@ -85,24 +85,16 @@ namespace WebApplication2.Repositories.Implementations
                     p.Name.ToLower()
                         .Contains(normalizedName));
             }
-
-            if (!string.IsNullOrWhiteSpace(
-                queryDto.AssignmentStatus))
+            if (queryDto.IsAssigned.HasValue)
             {
-                var assignmentStatus =
-                    queryDto.AssignmentStatus
-                        .Trim()
-                        .ToLower();
-
-                if (assignmentStatus == "assigned")
+                if (queryDto.IsAssigned.Value)
                 {
                     query = query.Where(p =>
                         p.TagAssociations.Any(a =>
                             a.Tag.UpdateStatus !=
                             UpdateStatus.Deleted));
                 }
-
-                if (assignmentStatus == "unassigned")
+                else
                 {
                     query = query.Where(p =>
                         !p.TagAssociations.Any(a =>

@@ -23,7 +23,10 @@ namespace WebApplication2.Services.Interfaces
                 TagPerformanceQueryDto queryDto);
 
         Task<PerformancePageResponseDto<TagResponseDto>>
-            GetRedisPerformanceAsync(
+            GetCachePerformanceAsync(
                 TagPerformanceQueryDto queryDto);
+
+        Task WarmCacheAsync(
+            CancellationToken cancellationToken);
     }
 }

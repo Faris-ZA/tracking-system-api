@@ -85,24 +85,16 @@ namespace WebApplication2.Repositories.Implementations
                     t.Label.ToLower()
                         .Contains(normalizedLabel));
             }
-
-            if (!string.IsNullOrWhiteSpace(
-                queryDto.AssignmentStatus))
+            if (queryDto.IsAssigned.HasValue)
             {
-                var assignmentStatus =
-                    queryDto.AssignmentStatus
-                        .Trim()
-                        .ToLower();
-
-                if (assignmentStatus == "assigned")
+                if (queryDto.IsAssigned.Value)
                 {
                     query = query.Where(t =>
                         t.PeopleAssociations.Any(a =>
                             a.Person.UpdateStatus !=
                             UpdateStatus.Deleted));
                 }
-
-                if (assignmentStatus == "unassigned")
+                else
                 {
                     query = query.Where(t =>
                         !t.PeopleAssociations.Any(a =>
@@ -155,3 +147,4 @@ namespace WebApplication2.Repositories.Implementations
         }
     }
 }
+

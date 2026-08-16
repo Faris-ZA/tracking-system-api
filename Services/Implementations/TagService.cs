@@ -1,4 +1,4 @@
-﻿using WebApplication2.Services.Caching.Interfaces;
+using WebApplication2.Services.Caching.Interfaces;
 using WebApplication2.Constants;
 using WebApplication2.DTOs.Tags;
 using WebApplication2.Exceptions;
@@ -90,21 +90,21 @@ namespace WebApplication2.Services.Implementations
             };
 
             await _tagRepository.AddAsync(tag);
-        await _tagRepository.SaveChangesAsync();
+            await _tagRepository.SaveChangesAsync();
 
-        var response = MapToResponseDto(tag);
+            var response = MapToResponseDto(tag);
 
-        try
-        {
-            await _tagCacheService.SetAsync(response);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Tag was created in database, but Redis update failed. {ex.Message}");
-        }
+            try
+            {
+                await _tagCacheService.SetAsync(response);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"{CacheMessages.TagCreateFailed} {ex.Message}");
+            }
 
-        return response;
+            return response;
         }
 
         public async Task<TagResponseDto> UpdateAsync(
@@ -136,19 +136,19 @@ namespace WebApplication2.Services.Implementations
 
             await _tagRepository.SaveChangesAsync();
 
-        var response = MapToResponseDto(tag);
+            var response = MapToResponseDto(tag);
 
-        try
-        {
-            await _tagCacheService.UpdateLabelAsync(response, oldLabel);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Tag was updated in database, but Redis update failed. {ex.Message}");
-        }
+            try
+            {
+                await _tagCacheService.UpdateLabelAsync(response, oldLabel);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"{CacheMessages.TagUpdateFailed} {ex.Message}");
+            }
 
-        return response;
+            return response;
         }
 
         public async Task<PerformancePageResponseDto<TagResponseDto>>
@@ -171,7 +171,7 @@ namespace WebApplication2.Services.Implementations
 
             return new PerformancePageResponseDto<TagResponseDto>
             {
-                Source = "Database",
+                Source = PerformanceSources.Database,
                 PageNumber = queryDto.PageNumber,
                 PageSize = queryDto.PageSize,
                 TotalRecords = databaseResult.TotalRecords,
@@ -211,16 +211,17 @@ namespace WebApplication2.Services.Implementations
 
             await _tagRepository.SaveChangesAsync();
 
-        try
-        {
-            await _tagCacheService.RemoveAsync(id);
+            try
+            {
+                await _tagCacheService.RemoveAsync(id);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"{CacheMessages.TagDeleteFailed} {ex.Message}");
+            }
+
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine(
-                $"Tag was deleted in database, but Redis removal failed. {ex.Message}");
-        }
-    }
 
     private static void ValidateMacAddress(string mac)
         {
@@ -236,14 +237,14 @@ namespace WebApplication2.Services.Implementations
         }
 
         
-        public async Task<PerformancePageResponseDto<TagResponseDto>>
-        GetRedisPerformanceAsync(
+    public async Task<PerformancePageResponseDto<TagResponseDto>>
+        GetCachePerformanceAsync(
             TagPerformanceQueryDto queryDto)
     {
         try
         {
             var result =
-                await GetRedisPerformanceCoreAsync(queryDto);
+                await GetCachePerformanceCoreAsync(queryDto);
 
             var skippedRecords =
                 (queryDto.PageNumber - 1)
@@ -266,12 +267,12 @@ namespace WebApplication2.Services.Implementations
             if (cacheLooksIncomplete)
             {
                 Console.WriteLine(
-                    "Tag Redis cache is missing or incomplete. Falling back to database.");
+                    CacheMessages.TagCacheIncomplete);
 
                 var fallback =
                     await GetDatabasePerformanceAsync(queryDto);
 
-                fallback.Source = "DatabaseFallback";
+                fallback.Source = PerformanceSources.DatabaseFallback;
 
                 return fallback;
             }
@@ -281,19 +282,19 @@ namespace WebApplication2.Services.Implementations
         catch (Exception ex)
         {
             Console.WriteLine(
-                $"Tag Redis failed. Falling back to database. {ex.Message}");
+                $"{CacheMessages.TagCacheFailed} {ex.Message}");
 
             var fallback =
                 await GetDatabasePerformanceAsync(queryDto);
 
-            fallback.Source = "DatabaseFallback";
+            fallback.Source = PerformanceSources.DatabaseFallback;
 
             return fallback;
         }
     }
 
     private async Task<PerformancePageResponseDto<TagResponseDto>>
-        GetRedisPerformanceCoreAsync(
+        GetCachePerformanceCoreAsync(
             TagPerformanceQueryDto queryDto)
         {
             ValidatePerformanceQuery(queryDto);
@@ -301,7 +302,7 @@ namespace WebApplication2.Services.Implementations
             var totalStopwatch =
                 Stopwatch.StartNew();
 
-            var redisStopwatch =
+            var cacheStopwatch =
                 Stopwatch.StartNew();
 
             List<TagResponseDto> tags;
@@ -327,7 +328,7 @@ namespace WebApplication2.Services.Implementations
                 if (tag != null &&
                     !MatchesAssignmentStatus(
                         tag,
-                        queryDto.AssignmentStatus))
+                        queryDto.IsAssigned))
                 {
                     tag = null;
                 }
@@ -353,15 +354,14 @@ namespace WebApplication2.Services.Implementations
                             queryDto.PageNumber,
                             queryDto.PageSize);
 
-                if (!string.IsNullOrWhiteSpace(
-                    queryDto.AssignmentStatus))
+                if (queryDto.IsAssigned.HasValue)
                 {
                     tags =
                         tags
                             .Where(tag =>
                                 MatchesAssignmentStatus(
                                     tag,
-                                    queryDto.AssignmentStatus))
+                                    queryDto.IsAssigned))
                             .ToList();
                 }
 
@@ -369,9 +369,7 @@ namespace WebApplication2.Services.Implementations
                     tags.Count;
             }
             else if (
-                queryDto.AssignmentStatus?
-                    .Trim()
-                    .ToLower() == "assigned")
+                queryDto.IsAssigned == true)
             {
                 tags =
                     await _tagCacheService
@@ -384,9 +382,7 @@ namespace WebApplication2.Services.Implementations
                         .GetAssignedCountAsync();
             }
             else if (
-                queryDto.AssignmentStatus?
-                    .Trim()
-                    .ToLower() == "unassigned")
+                queryDto.IsAssigned == false)
             {
                 tags =
                     await _tagCacheService
@@ -411,12 +407,12 @@ namespace WebApplication2.Services.Implementations
                         .GetCountAsync();
             }
 
-            redisStopwatch.Stop();
+            cacheStopwatch.Stop();
             totalStopwatch.Stop();
 
             return new PerformancePageResponseDto<TagResponseDto>
             {
-                Source = "Redis",
+                Source = PerformanceSources.Cache,
 
                 PageNumber =
                     queryDto.PageNumber,
@@ -432,8 +428,8 @@ namespace WebApplication2.Services.Implementations
 
                 DatabaseQueryTimeMs = 0,
 
-                RedisQueryTimeMs =
-                    redisStopwatch.ElapsedMilliseconds,
+                CacheQueryTimeMs =
+                    cacheStopwatch.ElapsedMilliseconds,
 
                 TotalExecutionTimeMs =
                     totalStopwatch.ElapsedMilliseconds,
@@ -444,32 +440,19 @@ namespace WebApplication2.Services.Implementations
 
         private static bool MatchesAssignmentStatus(
             TagResponseDto tag,
-            string? assignmentStatus)
+            bool? isAssigned)
         {
-            if (string.IsNullOrWhiteSpace(
-                assignmentStatus))
+            if (!isAssigned.HasValue)
             {
                 return true;
             }
 
-            var status =
-                assignmentStatus
-                    .Trim()
-                    .ToLower();
-
-            if (status == "assigned")
-            {
-                return tag.AssociatedPerson != null;
-            }
-
-            if (status == "unassigned")
-            {
-                return tag.AssociatedPerson == null;
-            }
-
-            return true;
+            return isAssigned.Value
+                ? tag.AssociatedPerson != null
+                : tag.AssociatedPerson == null;
         }
-private static void ValidatePerformanceQuery(
+
+        private static void ValidatePerformanceQuery(
             TagPerformanceQueryDto queryDto)
         {
             if (queryDto.PageNumber < 1)
@@ -484,23 +467,8 @@ private static void ValidatePerformanceQuery(
                 throw new BadRequestException(
                     ErrorMessages.InvalidPageSize);
             }
-
-            if (!string.IsNullOrWhiteSpace(
-                queryDto.AssignmentStatus))
-            {
-                var assignmentStatus =
-                    queryDto.AssignmentStatus
-                        .Trim()
-                        .ToLower();
-
-                if (assignmentStatus != "assigned" &&
-                    assignmentStatus != "unassigned")
-                {
-                    throw new BadRequestException(
-                        ErrorMessages.InvalidAssignmentStatus);
-                }
-            }
         }
+
 
         private static TagResponseDto MapToResponseDto(
             Tag tag)
@@ -527,9 +495,46 @@ private static void ValidatePerformanceQuery(
                 }
             };
         }
+
+        public async Task WarmCacheAsync(
+           CancellationToken cancellationToken)
+        {
+            const int batchSize = 5000;
+
+            var skip = 0;
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var tags =
+                    await _tagRepository.GetBatchAsync(
+                        skip,
+                        batchSize);
+
+                if (tags.Count == 0)
+                {
+                    break;
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var tagDtos =
+                    tags
+                        .Select(MapToResponseDto)
+                        .ToList();
+
+                await _tagCacheService
+                    .SetBatchAsync(tagDtos);
+
+                if (tags.Count < batchSize)
+                {
+                    break;
+                }
+
+                skip += batchSize;
+            }
+        }
     }
 }
-
 
 
 

@@ -1,4 +1,4 @@
-﻿using WebApplication2.Services.Caching.Interfaces;
+using WebApplication2.Services.Caching.Interfaces;
 using WebApplication2.DTOs.Tags;
 using WebApplication2.DTOs.People;
 using WebApplication2.Constants;
@@ -130,7 +130,7 @@ namespace WebApplication2.Services.Implementations
         catch (Exception ex)
         {
             Console.WriteLine(
-                $"Association was created in database, but Redis synchronization failed. {ex.Message}");
+                $"{CacheMessages.AssociationCreateCacheFailed} {ex.Message}");
 
             try
             {
@@ -214,7 +214,7 @@ namespace WebApplication2.Services.Implementations
         catch (Exception ex)
         {
             Console.WriteLine(
-                $"Association was deleted from database, but Redis synchronization failed. {ex.Message}");
+                $"{CacheMessages.AssociationDeleteCacheFailed} {ex.Message}");
 
             try
             {
@@ -229,3 +229,5 @@ namespace WebApplication2.Services.Implementations
 
     }
 }
+
+

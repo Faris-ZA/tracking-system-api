@@ -14,7 +14,7 @@ namespace WebApplication2.DTOs.Performance
 
         public long DatabaseQueryTimeMs { get; set; }
 
-        public long RedisQueryTimeMs { get; set; }
+        public long CacheQueryTimeMs { get; set; }
 
         public long TotalExecutionTimeMs { get; set; }
 
