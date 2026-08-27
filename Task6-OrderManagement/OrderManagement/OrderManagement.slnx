@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="AnalyticsService/AnalyticsService.csproj" />
+  <Project Path="CustomerService/CustomerService.csproj" />
+  <Project Path="InventoryService/InventoryService.csproj" />
+  <Project Path="KafkaAnalyticsService/KafkaAnalyticsService.csproj" />
+  <Project Path="KafkaCustomerService/KafkaCustomerService.csproj" />
+  <Project Path="KafkaInventoryService/KafkaInventoryService.csproj" />
+  <Project Path="KafkaOrderService/KafkaOrderService.csproj" />
+  <Project Path="OrderService/OrderService.csproj" />
+</Solution>
